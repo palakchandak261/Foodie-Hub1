@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Success | Foodie 🍴</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: url("/images/food_bg.jpg") no-repeat center center/cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 0;
+    }
+
+    .success-card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      padding: 1.8rem 2.2rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      color: #fff;
+      animation: fadeIn 1s ease-in-out;
+      margin-left: 450px;
+    }
+
+    .success-icon {
+      font-size: 65px;
+      color: #28ff84;
+      text-shadow: 0 0 10px rgba(0, 255, 100, 0.6);
+      animation: bounce 1.5s infinite;
+    }
+
+    .success-card h2 {
+      color: #ff9966;
+      font-weight: 700;
+      margin-top: 0.6rem;
+      font-size: 1.5rem;
+    }
+
+    .success-card p {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 0.4rem;
+    }
+
+    .reward-box {
+      margin-top: 18px;
+      background: rgba(255, 215, 0, 0.2);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      border-radius: 15px;
+      padding: 12px;
+      animation: glow 2s infinite alternate;
+    }
+
+    .reward-icon {
+      font-size: 30px;
+      animation: spin 3s linear infinite;
+    }
+
+    .btn-action {
+      display: inline-block;
+      border-radius: 10px;
+      padding: 8px 20px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 600;
+      margin: 8px 5px;
+      transition: transform 0.2s, box-shadow 0.3s;
+      border: none;
+      font-size: 0.95rem;
+    }
+
+    .btn-home {
+      background: linear-gradient(90deg, #ff7b00, #ff9966);
+    }
+
+    .btn-track {
+      background: linear-gradient(90deg, #009245, #00c9ff);
+    }
+
+    .btn-action:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.4);
+    }
+
+    .confetti {
+      position: absolute;
+      top: -10px;
+      animation: fall linear infinite;
+      opacity: 0.9;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes glow {
+      from { box-shadow: 0 0 6px #ffd24c; }
+      to { box-shadow: 0 0 22px #ffc107; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>Order Placed Successfully!</h2>
+
+    <p>Your Order ID: <strong>#<%= orderId %></strong></p>
+    <p><strong>Total Paid:</strong> ₹<%= Number(totalAmount).toFixed(2) %></p>
+    <p><strong>Payment Method:</strong> <%= paymentMethod %></p>
+
+    <% if (rewardPointsEarned && rewardPointsEarned > 0) { %>
+      <div class="reward-box mt-3">
+        <div class="reward-icon">💰</div>
+        <h5 class="mt-2 text-warning fw-bold">Congratulations!</h5>
+        <p>You earned <strong><%= rewardPointsEarned %></strong> reward points!</p>
+       <% if (typeof rewardPointsRedeemed !== 'undefined' && rewardPointsRedeemed > 0) { %>
+          <p>(Redeemed <strong><%= rewardPointsRedeemed %></strong> points)</p>
+        <% } %>
+      </div>
+    <% } %>
+
+    <div class="mt-3">
+      <a href="/restaurants" class="btn-action btn-home"><i class="bi bi-house-door"></i> Home</a>
+      <a href="/track-order/<%= orderId %>" class="btn-action btn-track"><i class="bi bi-truck"></i> Track</a>
+    </div>
+  </div>
+
+  <script>
+    for (let i = 0; i < 25; i++) {
+      const confetti = document.createElement('div');
+      confetti.textContent = '🎉';
+      confetti.classList.add('confetti');
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.fontSize = (Math.random() * 18 + 16) + 'px';
+      confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      confetti.style.animationDelay = Math.random() * 3 + 's';
+      document.body.appendChild(confetti);
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+

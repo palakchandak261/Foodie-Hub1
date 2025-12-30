@@ -1,0 +1,133 @@
+<div class="container-fluid mt-3">
+  <a href="javascript:history.back()" class="btn btn-outline-danger fw-semibold px-3 py-1 rounded-pill shadow-sm">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="container my-5">
+  <div class="card shadow-lg border-0 rounded-4 p-4 bg-light bg-opacity-75">
+    <h2 class="text-danger text-center mb-4 fw-bold" style="color: rgb(43, 7, 21);">🛒 Your Cart</h2>
+
+    <% if (cartItems && cartItems.length > 0) { %>
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle shadow-sm rounded-3 overflow-hidden">
+          <thead class="table-danger">
+            <tr>
+              <th>#</th>
+              <th>Item Name</th>
+              <th>Quantity</th>
+              <th>Price (₹)</th>
+              <th>Total (₹)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% cartItems.forEach((item, index) => { %>
+              <tr>
+                <td><%= index + 1 %></td>
+                <td class="fw-semibold"><%= item.name %></td>
+                <td>
+                  <form action="/cart/update/<%= item.itemId %>" method="POST"
+      class="d-flex justify-content-center align-items-center gap-2">
+
+  <!-- ✅ FIX: send correct identifiers -->
+  <input type="hidden" name="itemId" value="<%= item.itemId %>">
+  <% if (item.restaurantId) { %>
+    <input type="hidden" name="restaurantId" value="<%= item.restaurantId %>">
+  <% } %>
+
+  <input 
+    type="number" 
+    name="quantity" 
+    min="1" 
+    value="<%= item.quantity %>" 
+    class="form-control text-center border-danger-subtle"
+    style="width: 75px; border-radius: 8px;"
+  >
+
+  <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">
+    Update
+  </button>
+</form>
+
+                </td>
+                <td>₹<%= parseFloat(item.price || 0).toFixed(2) %></td>
+                <td class="fw-bold text-success">₹<%= (item.quantity * parseFloat(item.price || 0)).toFixed(2) %></td>
+                <td>
+                  <a href="/cart/remove/<%= item.itemId %>" class="btn btn-sm btn-outline-dark">
+                    <i class="bi bi-trash"></i> Remove
+                  </a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4">
+        <h4 class="fw-bold text-dark mb-3 mb-md-0">
+          Total Amount: <span class="text-success">₹<%= totalAmount.toFixed(2) %></span>
+        </h4>
+        <a href="/checkout" class="btn btn-success px-4 py-2 fw-semibold shadow-sm" style="background-color: green !important;">
+          Proceed to Checkout 💳
+        </a>
+      </div>
+
+      <!-- ✅ Added Bottom Back Button -->
+      <div class="text-center mt-4">
+        <a href="javascript:history.back()" class="btn btn-outline-danger px-4 py-2 fw-semibold rounded-pill shadow-sm">
+          <i class="bi bi-arrow-left-circle"></i> Back to Menu
+        </a>
+      </div>
+
+    <% } else { %>
+      <div class="text-center p-5 bg-white bg-opacity-75 rounded-4 shadow-sm mt-4">
+        <h4 class="text-muted mb-2">🛍️ Your cart is empty!</h4>
+        <p class="text-secondary mb-3">Go back and add some delicious food items 🍔</p>
+        <a href="/restaurants" class="btn btn-danger px-4 py-2 fw-semibold shadow-sm">
+          Browse Restaurants
+        </a>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<style>
+  body {
+    background: url("/images/food_bg.jpg") no-repeat center center/cover;
+    background-attachment: fixed;
+  }
+
+  .table thead th {
+    background: linear-gradient(90deg, #ff7b00, #ff9966);
+    color: white;
+    font-weight: 600;
+  }
+
+  .table tbody tr:hover {
+    background-color: rgba(66, 61, 59, 0.1);
+    transition: background 0.3s ease;
+  }
+
+  .btn-outline-danger:hover {
+    background-color: #ff7b00;
+    color: white;
+  }
+
+  .btn-outline-danger, .btn-outline-dark {
+    border-radius: 8px;
+  }
+
+  .btn-outline-dark:hover {
+    background-color: #343a40;
+    color: white;
+  }
+
+  .btn-outline-danger i, .btn-outline-dark i {
+    margin-right: 4px;
+  }
+</style>
+
+
+
+

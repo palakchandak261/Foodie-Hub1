@@ -1,0 +1,11 @@
+<%- include('partials/header') %>
+<div class="container text-center mt-5">
+  <h3 class="mb-3 text-success">Scan QR to Pay ₹<%= amount %></h3>
+  <img src="<%= qrDataUrl %>" alt="QR Code" class="border rounded p-3 shadow" width="300" />
+  <form action="/verify-payment" method="POST" class="mt-4">
+    <input type="hidden" name="amount" value="<%= amount %>">
+    <button type="submit" name="paymentSuccess" value="true" class="btn btn-success px-4">✅ Payment Done</button>
+    <button type="submit" name="paymentSuccess" value="false" class="btn btn-danger px-4">❌ Cancel</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

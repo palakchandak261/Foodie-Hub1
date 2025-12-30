@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin - Orders</title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body class="p-4 bg-light">
+  <div class="container">
+    <h2 class="mb-4">📦 All Orders</h2>
+    <a href="/admin/users" class="btn btn-primary mb-3">👥 View Users</a>
+
+    <table class="table table-hover table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Restaurant</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Payment</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% orders.forEach(o => { %>
+          <tr>
+            <td><%= o.order_id %></td>
+            <td><%= o.customer_name %></td>
+            <td><%= o.restaurant_name %></td>
+            <td>₹<%= o.total_amount.toFixed(2) %></td>
+            <td><%= o.status %></td>
+            <td><%= o.payment_method %></td>
+            <td><%= new Date(o.order_time).toLocaleString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

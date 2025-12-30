@@ -1,0 +1,178 @@
+<div class="container my-4">
+  <% if (notFound) { %>
+    <div class="text-center p-4 shadow-sm rounded bg-light" style="max-width: 500px; margin: auto; background-color: #ccc; margin-top: 150px;">
+      <h4 class="text-danger fw-bold mb-2">⚠️ Order Not Found!</h4>
+      <p class="text-muted small mb-3">We couldn’t find your order. Please check your order ID or try again later.</p>
+      <a href="/restaurants" class="btn btn-sm btn-primary">🍴 Back to Restaurants</a>
+    </div>
+  <% } else { %>
+    <div class="card shadow-sm p-3 mx-auto mt-3" style="max-width: 480px; border-radius: 14px; margin-top:150px; background-color: #ccc; margin-top: 150px;">
+      <div class="text-center mb-3 " style="margin-top: 100px;">
+        <h5 class="fw-bold text-success mb-1">✅ Order Confirmed!</h5>
+        <p class="text-muted small mb-0">Order ID: <strong>#<%= order.order_id %></strong></p>
+        <p class="text-muted small">Placed on: <%= new Date(order.created_at).toLocaleString() %></p>
+      </div>
+
+      <hr class="my-2">
+
+      <div class="small">
+        <p class="mb-1"><strong>💰 Total:</strong> ₹<%= Number(order.total_amount- order.total_amount*0.05).toFixed(2) %></p>
+        <p class="mb-1"><strong>💳 Payment:</strong> <%= order.payment_method %></p>
+        <p class="mb-1"><strong>🚚 Address:</strong> <span class="text-muted"><%= order.address || "Not available" %></span></p>
+      </div>
+
+      <!-- 🟢 Order Status Progress -->
+      <div class="mt-3">
+        <h6 class="fw-semibold mb-2 text-center">📦 Order Status</h6>
+        <div class="progress" style="height: 10px; border-radius: 10px;">
+          <% let progress = 0; %>
+          <% if (order.status === 'Confirmed') progress = 25;
+             else if (order.status === 'Preparing') progress = 50;
+             else if (order.status === 'On the Way') progress = 75;
+             else if (order.status === 'Delivered') progress = 100; %>
+          <div id="progress-bar" class="progress-bar bg-success" role="progressbar"
+               style="width: <%= progress %>%;" aria-valuenow="<%= progress %>"
+               aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-1 small text-muted">
+          <span>Confirmed</span>
+          <span>Preparing</span>
+          <span>On Way</span>
+          <span>Delivered</span>
+        </div>
+
+        <p id="statusText" class="mt-2 text-center fw-semibold text-primary small">
+          Status: <%= order.status %> 🚀
+        </p>
+      </div>
+
+      <div class="text-center mt-3">
+        <p class="text-muted small mb-2">Last Updated: <%= new Date(order.updated_at).toLocaleString() %></p>
+        <a href="/restaurants" class="btn btn-sm btn-outline-primary px-3 py-1">🍽 Continue Exploring</a>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- 🎉 Success + Review Section -->
+<div id="order-success-section" class="container my-5" style="display: none; ">
+  <div class="card p-4 shadow-sm mx-auto" style="max-width: 500px; border-radius: 15px; background-color: #ccc; margin-bottom: 100px;">
+    <div class="text-center mb-3">
+      <h4 class="fw-bold text-success mb-1">🎉 Order Delivered Successfully!</h4>
+      <p class="text-muted small">We hope you enjoyed your meal. Please share your feedback!</p>
+    </div>
+<!-- ⭐ Review Form -->
+<form id="reviewForm">
+  <div class="text-center mb-3">
+    <div class="rating-stars">
+      <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 stars">★</label>
+      <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
+      <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
+      <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
+      <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+    </div>
+  </div>
+
+  <textarea class="form-control mb-3" rows="3" placeholder="Write your review..." required></textarea>
+  <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+</form>
+
+
+<!-- 🎉 Success + Review Section -->
+<div id="order-success-section" class="container my-5" style="display: none;">
+  <div class="card p-4 shadow-sm mx-auto" style="max-width: 500px; border-radius: 15px;">
+    <div class="text-center mb-3">
+      <h4 class="fw-bold text-success mb-1">🎉 Order Delivered Successfully!</h4>
+      <p class="text-muted small">We hope you enjoyed your meal. Please share your feedback!</p>
+    </div>
+
+    <!-- ⭐ Review Form -->
+    <form id="reviewForm">
+      <div class="text-center mb-3">
+        <div class="rating-stars">
+          <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 stars">★</label>
+          <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
+          <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
+          <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
+          <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+        </div>
+      </div>
+
+      <textarea class="form-control mb-3" rows="3" placeholder="Write your review..." required></textarea>
+      <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+    </form>
+  </div>
+</div>
+
+<style>
+/* ⭐ Proper Rating Stars */
+.rating-stars {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+  gap: 3px;
+}
+
+.rating-stars input {
+  display: none; /* Hides radio buttons */
+}
+
+.rating-stars label {
+  font-size: 2rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.rating-stars label:hover,
+.rating-stars label:hover ~ label {
+  color: #ffb400;
+  transform: scale(1.2);
+}
+
+.rating-stars input:checked ~ label {
+  color: #ff9800;
+}
+
+</style>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const orderStatus = "<%= order.status %>".toLowerCase();
+  const progressBar = document.getElementById("progress-bar");
+  const statusText = document.getElementById("statusText");
+  const successSection = document.getElementById("order-success-section");
+
+  if (["placed", "confirmed"].includes(orderStatus)) {
+    let stages = [
+      { width: 25, text: "Status: Confirmed ✅" },
+      { width: 50, text: "Status: Preparing 👨‍🍳" },
+      { width: 75, text: "Status: On the Way 🚚" },
+      { width: 100, text: "Status: Delivered 🎉" }
+    ];
+
+    let i = 0;
+
+    const jumpProgress = () => {
+      if (i < stages.length) {
+        progressBar.style.width = stages[i].width + "%";
+        progressBar.setAttribute("aria-valuenow", stages[i].width);
+        statusText.textContent = stages[i].text;
+        i++;
+        setTimeout(jumpProgress, 7500); // every 7.5 seconds
+      } else {
+        // Show success + review form after 30s
+        setTimeout(() => {
+          successSection.style.display = "block";
+          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        }, 2000);
+      }
+    };
+
+    jumpProgress();
+  }
+});
+</script>

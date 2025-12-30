@@ -1,0 +1,210 @@
+
+
+<div class="container mt-4">
+  <h3 class="text-center mb-3 fw-semibold">💳 Checkout</h3>
+
+  <div class="row justify-content-center small">
+    <!-- LEFT: order + payment form -->
+
+    <% if (isFirstOrder) { %>
+<div class="coupon-banner small text-center fw-semibold" style="background: linear-gradient(135deg, #00c851, #007e33); color: white; padding: 15px 10px; border-radius: 10px; margin: 30px auto 15px; width: 85%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); animation: pulse 2s infinite;">
+  🎉 First-time user? Use <span style="background: white; color: #007e33; padding: 3px 8px; border-radius: 6px; margin-bottom: 150px;">FIRST10</span> for 10% OFF 💚
+</div>
+<% } %>
+
+<div class="coupon-banner small text-center fw-semibold" style="background: linear-gradient(135deg, #ff7b00, #ffb347); color: white; padding: 12px 8px; border-radius: 10px; margin: 20px auto; width: 85%; box-shadow: 0 3px 8px rgba(0,0,0,0.2); animation: pulse 2s infinite;">
+  💥 Use <span style="background: white; color: #ff7b00; padding: 2px 8px; border-radius: 6px; margin-bottom: 500px; ">SAVE5</span> for 5% OFF 🎉
+</div>
+
+    <div class="col-lg-6 col-md-8 mb-4">
+      <div class="card p-3 shadow-sm" style="border-radius: 12px; font-size: 0.9rem; background-color:rgb(203, 202, 202);margin-bottom: 80px;">
+        <h5 class="mb-3 text-center fw-bold">🛒 Review Your Order</h5>
+
+        <% if (cartItems && cartItems.length > 0) { %>
+          <ul class="list-group mb-3">
+            <% cartItems.forEach(item => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div>
+                  <strong><%= item.name %></strong><br>
+                  <span class="text-muted small">Qty: <%= item.quantity %></span>
+                </div>
+                <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted text-center">Your cart is empty.</p>
+        <% } %>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>Total</strong>
+          <strong>₹<%= Number(totalAmount || 0).toFixed(2) %></strong>
+        </div>
+
+        <% if (typeof rewardPoints !== 'undefined' && rewardPoints > 0) { %>
+          <div class="alert alert-warning py-2 small">
+            🎁 You have <strong><%= rewardPoints %></strong> reward points available.
+          </div>
+        <% } %>
+
+        <form id="checkoutForm" action="/checkout" method="POST">
+          <!-- 🏠 Address -->
+          <div class="mb-2">
+            <label for="address" class="form-label fw-semibold">🏠 Delivery Address</label>
+            <textarea
+              id="address"
+              name="address"
+              class="form-control form-control-sm"
+              rows="2"
+              placeholder="Enter delivery address..."
+              required
+              style="resize: none; border-radius: 8px; font-size: 0.85rem;"
+            ><%= typeof address !== 'undefined' ? address : '' %></textarea>
+          </div>
+
+          <!-- Payment -->
+          <div class="mb-2">
+            <label for="paymentMethod" class="form-label fw-semibold">Payment Method</label>
+            <select class="form-select form-select-sm" id="paymentMethod" name="paymentMethod" required>
+              <option value="COD">Cash on Delivery</option>
+              <option value="UPI">UPI (PhonePe / GPay / Paytm)</option>
+              <option value="QR">Pay via QR</option>
+            </select>
+          </div>
+
+          <!-- QR Payment -->
+          <div id="qrArea" class="text-center mb-3" style="display: <%= showQR ? 'block' : 'none' %>;">
+            <h6>Scan to Pay</h6>
+            <img src="/images/scanner.png" alt="QR" style="max-width:150px; border-radius:6px;" />
+            <p class="text-muted small mt-2">After payment, click Confirm Payment.</p>
+            <button type="button" id="confirmPaymentBtn" class="btn btn-success btn-sm" ">✅ Confirm Payment</button>
+          </div>
+
+          <!-- Coupon -->
+          <div class="mb-2 mt-3">
+            <label for="couponCode" class="form-label fw-semibold">💸 Coupon</label>
+            <div class="input-group input-group-sm">
+              <input type="text" id="couponCode" name="couponCode" class="form-control" placeholder="Enter code (e.g., SAVE5)" />
+              <button type="button" id="applyCouponBtn" class="btn btn-success btn-sm">Apply</button>
+            </div>
+            <div id="couponMsg" class="mt-1 text-success fw-bold small" style="display:none;"></div>
+          </div>
+
+          <div class="d-grid gap-2 mt-3">
+            <button id="proceedBtn" type="submit" class="btn btn-primary btn-sm fw-semibold" >Confirm & Pay</button>
+            <a href="/cart" class="btn btn-outline-secondary btn-sm">Edit Cart</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT: order summary -->
+    <div class="col-lg-4 col-md-5">
+      <div class="card p-3 shadow-sm" style="border-radius: 12px; font-size: 0.9rem; background-color:rgb(203, 202, 202);">
+        <h6 class="mb-3 text-center fw-bold">🧾 Order Summary</h6>
+
+        <% if (cartItems && cartItems.length > 0) { %>
+          <ul class="list-group mb-2">
+            <% cartItems.forEach(item => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div>
+                  <strong><%= item.name %></strong><br>
+                  <span class="text-muted small">Qty: <%= item.quantity %></span>
+                </div>
+                <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+
+        <div class="d-flex justify-content-between fw-semibold">
+          <span>Total</span>
+          <span>₹<%= Number(totalAmount || 0).toFixed(2) %></span>
+        </div>
+        <p class="text-muted small mt-1 mb-0 text-center">Estimated delivery: 30–45 mins</p>
+      </div>
+<% if (bonusAvailable) { %>
+<div class="alert alert-success text-center fw-bold">
+  🎉 You unlocked ₹100 OFF on this order!
+</div>
+<% } %>
+
+    </div>
+
+  </div>
+  
+</div>
+
+
+
+<!-- Coupon Banners -->
+
+
+<style>
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+</style>
+
+<script>
+(function(){
+  const paymentSelect = document.getElementById('paymentMethod');
+  const qrArea = document.getElementById('qrArea');
+  const confirmBtn = document.getElementById('confirmPaymentBtn');
+  const checkoutForm = document.getElementById('checkoutForm');
+
+  paymentSelect.addEventListener('change', () => {
+    qrArea.style.display = (paymentSelect.value === 'QR') ? 'block' : 'none';
+  });
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.innerText = 'Processing...';
+      try {
+        const res = await fetch('/confirm-payment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await res.json();
+        if (data && data.ok && data.orderId) {
+          window.location.href = `/track-order/${data.orderId}`;
+        } else {
+          alert(data.message || 'Payment failed');
+          confirmBtn.disabled = false;
+          confirmBtn.innerText = '✅ Confirm Payment';
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error processing payment. Try again.');
+        confirmBtn.disabled = false;
+        confirmBtn.innerText = '✅ Confirm Payment';
+      }
+    });
+  }
+
+  checkoutForm.addEventListener('submit', (e) => {
+    const method = paymentSelect.value;
+    if (method === 'QR') {
+      e.preventDefault();
+      const query = new URLSearchParams(window.location.search);
+      query.set('qr', '1');
+      window.location.href = window.location.pathname + '?' + query.toString();
+    }
+  });
+})();
+
+document.getElementById("applyCouponBtn").addEventListener("click", async () => {
+  const code = document.getElementById("couponCode").value.trim();
+  if (!code) return alert("Please enter a coupon code!");
+  const form = document.getElementById("checkoutForm");
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "couponCode";
+  input.value = code;
+  form.appendChild(input);
+  form.submit();
+});
+
+</script>
+
+

@@ -1,0 +1,36 @@
+<footer id="floatingFooter" 
+  class="text-center text-white py-4 mt-auto shadow-lg"
+  style="background: linear-gradient(90deg, #3e2723, #ff7b00);
+         position: fixed;
+         bottom: -100px;
+         left: 0;
+         width: 100%;
+         z-index: 1000;
+         transition: bottom 0.6s ease-in-out;">
+
+  <div class="container">
+    <p class="mb-1 fw-semibold">
+      © <%= new Date().getFullYear() %> 
+      <strong style="color: #ffd6a5;">Foodie</strong> 🍴 | Crafted with ❤️ by Palak Chandak
+    </p>
+
+    <div class="d-flex justify-content-center gap-4 mt-3">
+      <a href="#" class="text-white social-icon"><i class="bi bi-facebook fs-4"></i></a>
+      <a href="#" class="text-white social-icon"><i class="bi bi-instagram fs-4"></i></a>
+      <a href="#" class="text-white social-icon"><i class="bi bi-twitter-x fs-4"></i></a>
+      <a href="#" class="text-white social-icon"><i class="bi bi-envelope-fill fs-4"></i></a>
+    </div>
+  </div>
+
+  <style>
+    .social-icon {
+      transition: all 0.3s ease;
+      text-shadow: 0 0 6px rgba(255,255,255,0.4);
+    }
+    .social-icon:hover {
+      color: #ffb86b !important;
+      transform: scale(1.2);
+      text-shadow: 0 0 10px rgba(255,184,107,0.8);
+    }
+  </style>
+</footer>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin - Manage Users</title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body class="p-4 bg-light">
+  <div class="container">
+    <h2 class="mb-4">👥 Manage Users</h2>
+    <a href="/admin/orders" class="btn btn-warning mb-3">📦 View Orders</a>
+
+    <table class="table table-bordered table-striped">
+      <thead class="table-dark">
+        <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Rewards</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><%= u.user_id %></td>
+            <td><%= u.name %></td>
+            <td><%= u.email %></td>
+            <td><%= u.role %></td>
+            <td><%= u.rewards %></td>
+            <td>
+              <% if (u.role !== 'admin') { %>
+                <form action="/admin/users/delete/<%= u.user_id %>" method="POST" style="display:inline;">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              <% } else { %>
+                <span class="text-muted">Admin</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

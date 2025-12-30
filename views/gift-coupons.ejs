@@ -1,0 +1,103 @@
+<div class="text-center mb-5">
+    <br>
+    <br>
+    <br>
+  <h2 class="fw-bold display-6">🎁 Scratch & Win Gift Coupons</h2>
+  <p class="text-muted">Scratch the card to reveal your surprise discount</p>
+</div>
+
+<div class="row g-4 justify-content-center">
+  <% coupons.forEach((c, index) => { %>
+    <div class="col-md-4 col-lg-3">
+      <div class="scratch-card shadow-lg">
+        <div class="coupon-content">
+          <h5 class="fw-bold text-success">🎉 Congratulations!</h5>
+          <p class="fs-4 fw-bold mt-2">
+            <% if (c.discount_type === 'FLAT') { %>
+              ₹<%= c.discount_value %> OFF
+            <% } else { %>
+              <%= c.discount_value %>% OFF
+            <% } %>
+          </p>
+          <small class="text-muted">Use on your next order</small>
+        </div>
+
+        <canvas class="scratch-canvas"
+                width="250"
+                height="160"
+                data-id="<%= c.id %>"></canvas>
+      </div>
+    </div>
+  <% }) %>
+</div>
+<style>
+    .scratch-card {
+  position: relative;
+  width: 250px;
+  height: 160px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff8f0, #ffffff);
+  overflow: hidden;
+}
+
+.coupon-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  text-align: center;
+  padding-top: 40px;
+}
+
+.scratch-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 18px;
+  cursor: pointer;
+}
+
+/* Subtle glow */
+.scratch-card:hover {
+  transform: translateY(-4px);
+  transition: 0.3s ease;
+}
+</style>
+<script>
+document.querySelectorAll(".scratch-canvas").forEach(canvas => {
+  const ctx = canvas.getContext("2d");
+  let scratched = false;
+
+  // Golden scratch layer
+  ctx.fillStyle = "#d4af37";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "destination-out";
+
+  const scratch = (x, y) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const getXY = e => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    };
+  };
+
+  const scratchHandler = e => {
+    if (scratched) return;
+    const { x, y } = getXY(e);
+    scratch(x, y);
+  };
+
+  canvas.addEventListener("mousemove", scratchHandler);
+  canvas.addEventListener("touchmove", scratchHandler);
+
+  canvas.addEventListener("mouseleave", () => scratched = true);
+  canvas.addEventListener("touchend", () => scratched = true);
+});
+</script>
+

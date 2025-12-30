@@ -1,0 +1,322 @@
+<%- include('partials/header') %>
+
+<section class="food-section container my-5">
+  <h2 class="section-heading text-center fw-bold mb-5" style="margin-top: 100px;">
+    <i class="bi bi-journal-text me-2 text-warning"></i>Explore Our Menu
+  </h2>
+<!-- 🔍 Menu Search Bar -->
+<div class="row mb-4 justify-content-center">
+  <div class="col-md-6">
+    <div class="menu-search-wrapper">
+      <i class="bi bi-search search-icon"></i>
+      <input 
+        type="text"
+        id="menuSearch"
+        class="menu-search-input"
+        placeholder="Search dishes by name or description..."
+        onkeyup="filterMenu()"
+      >
+    </div>
+  </div>
+</div>
+
+  <div class="row g-4">
+    <% menu.forEach(m => { %>
+      <div 
+  class="col-md-4 col-sm-6 menu-item"
+  data-name="<%= m.name.toLowerCase() %>"
+  data-desc="<%= (m.description || '').toLowerCase() %>"
+>
+
+        <div class="card food-card border-0 shadow-lg h-100 position-relative">
+          
+          <!-- ❤️ Like Button -->
+          <button class="btn-like" data-id="<%= m.item_id %>">
+            <i class="bi bi-heart"></i>
+          </button>
+
+          <!-- 🍽️ Food Image -->
+          <div class="food-img-wrapper">
+            <% if (m.image_url) { %>
+              <img 
+                src="/<%= m.image_url %>" 
+                alt="<%= m.name %>"
+                class="food-img"
+                onerror="this.src='/images/default-food.jpg';"
+              >
+            <% } else { %>
+              <img src="/images/default-food.jpg" alt="Default" class="food-img">
+            <% } %>
+            <span class="price-tag">₹<%= m.price %></span>
+          </div>
+
+          <!-- 💬 Food Info -->
+          <div class="card-body text-center">
+            <h5 class="fw-bold text-dark"><%= m.name %></h5>
+            <p class="text-muted small"><%= m.description %></p>
+
+            <form method="POST" action="/cart/add/<%= m.item_id %>">
+              <input type="hidden" name="restaurantId" value="<%= m.restaurant_id %>">
+              <div class="input-group mb-3 w-75 mx-auto">
+                <input type="number" name="quantity" class="form-control text-center" value="1" min="1">
+                <button class="btn btn-warning text-white fw-bold">
+                  <i class="bi bi-cart-plus"></i> Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</section>
+
+<hr class="my-5">
+
+<!-- 🌟 Reviews Section -->
+<section class="container my-5 " style="margin-top: 500px;">
+  <h3 class="text-center text-danger fw-bold mb-4">⭐ Customer Reviews</h3>
+
+  <!-- Review Form -->
+  <div class="card shadow p-4 mb-5 border-0">
+    <form action="/restaurants/<%= restaurant.restaurant_id %>/review" method="POST">
+      <div class="mb-3 text-center">
+        <label class="form-label fw-semibold mb-2">Rate this Restaurant:</label><br>
+        <div class="rating">
+          <% for(let i=5; i>=1; i--) { %>
+            <input type="radio" name="rating" value="<%= i %>" id="star<%= i %>" required>
+            <label for="star<%= i %>">★</label>
+          <% } %>
+        </div>
+      </div>
+      <div class="mb-3">
+        <textarea name="comment" class="form-control" rows="3" placeholder="Write your review..." required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+    </form>
+  </div>
+
+  <!-- Average Rating -->
+  <h5 class="text-center text-secondary mb-3">
+    Average Rating:
+    <span class="fw-bold text-dark">
+      <%= avgRating || "No reviews yet" %> ⭐
+    </span>
+  </h5>
+
+  <!-- Display Reviews -->
+  <div class="list-group">
+    <% reviews.forEach(r => { %>
+      <div class="list-group-item mb-2 shadow-sm border-0 rounded">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold"><%= r.user_name %></h6>
+          <span class="text-warning">
+            <% for(let i=1; i<=5; i++) { %>
+              <i class="bi <%= i <= r.rating ? 'bi-star-fill' : 'bi-star' %>"></i>
+            <% } %>
+          </span>
+        </div>
+        <p class="mt-2 mb-1"><%= r.comment %></p>
+        <small class="text-muted"><%= new Date(r.created_at).toLocaleString() %></small>
+      </div>
+    <% }) %>
+  </div>
+</section>
+
+<%- include('partials/footer') %>
+
+<style>
+  /* 🔍 Menu Search Bar */
+.menu-search-wrapper {
+  position: relative;
+  width: 50rem;
+}
+
+.menu-search-input {
+  text-align: center;
+  width: 100%;
+  padding: 14px 18px 14px 48px;
+  border-radius: 40px;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+  outline: none;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.menu-search-input::placeholder {
+  color: #999;
+}
+
+.menu-search-input:focus {
+  border-color: #ff8008;
+  box-shadow: 0 8px 24px rgba(255,128,8,0.3);
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #ff8008;
+}
+
+/* 🌈 Card Styling */
+.food-card {
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #fff;
+}
+.food-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+/* ❤️ Like Button */
+.btn-like {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+  z-index: 5;
+}
+
+.btn-like i {
+  font-size: 18px;
+  color: #ff5e62;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.btn-like:hover {
+  transform: scale(1.1);
+}
+
+.btn-like.liked i {
+  color: #e0245e;
+  transform: scale(1.3);
+}
+
+.btn-like.liked {
+  background: #ffe6e6;
+}
+
+/* 🖼️ Food Image Wrapper */
+.food-img-wrapper {
+  position: relative;
+  height: 220px;
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.food-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.4s ease;
+}
+.food-card:hover .food-img {
+  transform: scale(1.05);
+}
+
+/* 💸 Price Tag */
+.price-tag {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: linear-gradient(90deg, #ff8008, #ff5500);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* ⭐ Rating Styling */
+.rating {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+}
+.rating input { display: none; }
+.rating label {
+  font-size: 2rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.rating input:checked ~ label,
+.rating label:hover,
+.rating label:hover ~ label {
+  color: #ff8008;
+}
+
+/* 🎨 Buttons */
+.btn-warning {
+  background: linear-gradient(90deg, #ff8008, #ff5500);
+  border: none;
+  transition: 0.3s;
+}
+.btn-warning:hover {
+  background: linear-gradient(90deg, #ff9933, #ff8008);
+  transform: scale(1.05);
+}
+.btn-primary {
+  background: linear-gradient(90deg, #ff8008, #ffc837);
+  border: none;
+}
+.btn-primary:hover {
+  background: linear-gradient(90deg, #ff9933, #ff8008);
+}
+</style>
+
+<script>
+  // ❤️ Like Toggle Animation
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.btn-like').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const icon = btn.querySelector('i');
+        icon.classList.toggle('bi-heart');
+        icon.classList.toggle('bi-heart-fill');
+        btn.classList.toggle('liked');
+      });
+    });
+  });
+</script>
+<script>
+function filterMenu() {
+  const input = document.getElementById("menuSearch").value.toLowerCase();
+  const items = document.querySelectorAll(".menu-item");
+
+  items.forEach(item => {
+    const name = item.getAttribute("data-name");
+    const desc = item.getAttribute("data-desc");
+
+    if (name.includes(input) || desc.includes(input)) {
+      item.style.display = "block";
+    } else {
+      item.style.display = "none";
+    }
+  });
+}
+</script>
+
+
+
+
+

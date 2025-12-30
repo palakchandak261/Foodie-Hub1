@@ -1,0 +1,43 @@
+<%- include('layout') %>
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm p-4">
+        <h3 class="mb-3">🎁 Your Reward Wallet</h3>
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <p class="mb-1 text-muted">Current Balance</p>
+            <h2><span class="badge bg-warning text-dark"><%= balance %> pts</span></h2>
+          </div>
+          <div class="text-end">
+            <a href="/restaurants" class="btn btn-outline-primary">Continue Shopping</a>
+            <a href="/checkout" class="btn btn-success ms-2">Checkout</a>
+          </div>
+        </div>
+
+        <hr>
+
+        <h5 class="mb-3">Transaction History</h5>
+        <% if (history && history.length > 0) { %>
+          <ul class="list-group">
+            <% history.forEach(h => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong><%= h.type %></strong> — <small class="text-muted"><%= h.description %></small><br>
+                  <small class="text-muted"><%= new Date(h.created_at).toLocaleString() %></small>
+                </div>
+                <span class="badge <%= h.type === 'Earned' ? 'bg-success' : 'bg-danger' %>">
+                  <%= (h.type === 'Earned' ? '+' : '-') + h.points %>
+                </span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted">No reward transactions yet.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Food App</title>
+  <link rel="stylesheet" href="public/style.css">
+  
+</head>
+<body>
+ <nav>
+  <a href="/">Home</a>
+  <a href="/restaurants">Restaurants</a>
+  <% if (session && session.user) { %>
+    <span>Welcome, <%= session.user.name %> | 🎁 <%= session.user.rewards || 0 %> pts</span>
+    <a href="/profile">Profile</a>
+    <a href="/cart">🛒 Cart</a>
+    <a href="/logout">Logout</a>
+  <% } else { %>
+    <a href="/login">Login</a>
+    <a href="/signup">Signup</a>
+  <% } %>
+</nav>
+
+
+  <div class="hero">
+    <h1>🍔 Welcome to Food Delivery App</h1>
+    <p>Order your favorite meals online</p>
+    <a href="/restaurants" class="btn">View Restaurants</a>
+  </div>
+</body>
+</html>
