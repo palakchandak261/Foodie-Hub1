@@ -20,6 +20,7 @@
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-ejs-layouts": "^2.5.1",
+    "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.2",
     "express-validator": "^7.3.0",
     "faker": "^6.6.6",

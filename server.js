@@ -18,11 +18,18 @@ app.use(flash());
 
 app.use(
   session({
+    key: "foodiehub.sid",
     secret: process.env.SESSION_SECRET,
+    store: sessionStore,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Render uses HTTP internally
+      maxAge: 1000 * 60 * 60 * 24,
+    },
   })
 );
+
 
 // expose session & flash to views
 app.use((req, res, next) => {
@@ -54,6 +61,17 @@ const db = mysql.createPool({
 });
 
 console.log("✅ MySQL pool created");
+
+const MySQLStore = require("express-mysql-session")(session);
+
+const sessionStore = new MySQLStore(
+  {
+    expiration: 1000 * 60 * 60 * 24, // 1 day
+    createDatabaseTable: true,
+  },
+  db
+);
+
 
 // =============================
 // Auth Helpers
@@ -229,7 +247,7 @@ app.post("/signup", async (req, res) => {
       phone || null,
       address || null,
     ]);
-    res.redirect("/restaurants");
+    res.redirect("/login");
   } catch (err) {
     console.error("Signup Error:", err);
     req.flash("error", "Signup failed. Try again.");
