@@ -9,26 +9,49 @@ const expressLayouts = require("express-ejs-layouts");
 
 const app = express();
 
+/* ✅ REQUIRED FOR RENDER */
+app.set("trust proxy", 1);
+
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: { rejectUnauthorized: false },
+});
+
+const MySQLStore = require("express-mysql-session")(session);
+
+const sessionStore = new MySQLStore(
+  {
+    expiration: 1000 * 60 * 60 * 24,
+    createDatabaseTable: true,
+  },
+  db
+);
+app.use(
+  session({
+    name: "foodiehub.sid",
+    secret: process.env.SESSION_SECRET,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Render handles HTTPS internally
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
+
+
 // =============================
 // Middleware Setup
 // =============================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(flash());
-
-app.use(
-  session({
-    key: "foodiehub.sid",
-    secret: process.env.SESSION_SECRET,
-    store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Render uses HTTP internally
-      maxAge: 1000 * 60 * 60 * 24,
-    },
-  })
-);
 
 
 // expose session & flash to views
@@ -49,28 +72,10 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-// =============================
-// Database Connection
-// =============================
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false } // VERY IMPORTANT for Render
-});
 
 console.log("✅ MySQL pool created");
 
-const MySQLStore = require("express-mysql-session")(session);
 
-const sessionStore = new MySQLStore(
-  {
-    expiration: 1000 * 60 * 60 * 24, // 1 day
-    createDatabaseTable: true,
-  },
-  db
-);
 
 
 // =============================
