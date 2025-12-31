@@ -229,7 +229,7 @@ app.post("/signup", async (req, res) => {
       phone || null,
       address || null,
     ]);
-    res.redirect("/login");
+    res.redirect("/restaurants");
   } catch (err) {
     console.error("Signup Error:", err);
     req.flash("error", "Signup failed. Try again.");
