@@ -7,21 +7,24 @@ const bcrypt = require("bcryptjs");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
 
+const MySQLStore = require("express-mysql-session")(session);
+
 const app = express();
 
-/* ✅ REQUIRED FOR RENDER */
-app.set("trust proxy", 1);
-
+// =============================
+// Database Connection
+// =============================
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }
 });
 
-const MySQLStore = require("express-mysql-session")(session);
-
+// =============================
+// Session Store (DEFINE FIRST)
+// =============================
 const sessionStore = new MySQLStore(
   {
     expiration: 1000 * 60 * 60 * 24,
@@ -29,22 +32,6 @@ const sessionStore = new MySQLStore(
   },
   db
 );
-app.use(
-  session({
-    name: "foodiehub.sid",
-    secret: process.env.SESSION_SECRET,
-    store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false, // Render handles HTTPS internally
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24,
-    },
-  })
-);
-
 
 // =============================
 // Middleware Setup
@@ -53,29 +40,41 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(flash());
 
+app.set("trust proxy", 1); // 🔥 REQUIRED FOR RENDER
 
-// expose session & flash to views
+app.use(
+  session({
+    name: "foodiehub.sid",
+    secret: process.env.SESSION_SECRET,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false,   // Render handles HTTPS
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
+
+// expose session to views
 app.use((req, res, next) => {
   res.locals.session = req.session;
-  res.locals.title = "Food Ordering System";
   res.locals.message = req.flash("error");
   next();
 });
 
+// Views
 app.use(expressLayouts);
 app.set("layout", "layout");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Static files
+// Static
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
-
-
-console.log("✅ MySQL pool created");
-
-
 
 
 // =============================
