@@ -1,12 +1,17 @@
 require("dotenv").config();
 const express = require("express");
+const path = require("path");
 const session = require("express-session");
-const MySQLStore = require("express-mysql-session")(session);
 const mysql = require("mysql2/promise");
+const bcrypt = require("bcryptjs");
+const flash = require("connect-flash");
+const expressLayouts = require("express-ejs-layouts");
+
+const MySQLStore = require("express-mysql-session")(session);
 
 const app = express();
 
-/* ---------- DB ---------- */
+//* ---------- DB ---------- */
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -38,7 +43,6 @@ app.use(
     },
   })
 );
-
 
 // expose session to views
 app.use((req, res, next) => {
