@@ -7,32 +7,22 @@ const bcrypt = require("bcryptjs");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
 
-const MySQLStore = require("express-mysql-session")(session);
-
 const app = express();
 
 /* ---------- DB (FOR APP QUERIES ONLY) ---------- */
 const db = mysql.createPool(process.env.DATABASE_URL);
-
-/* ---------- SESSION STORE (IMPORTANT FIX) ---------- */
-const sessionStore = new MySQLStore({
-  uri: process.env.DATABASE_URL,
-  expiration: 1000 * 60 * 60 * 24,
-  createDatabaseTable: true,
-});
 
 /* ---------- SESSION MIDDLEWARE ---------- */
 app.set("trust proxy", 1);
 
 app.use(
   session({
-    key: "foodiehub.sid",
+    name: "foodiehub.sid",
     secret: process.env.SESSION_SECRET,
-    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,          // REQUIRED on Render
+      secure: true,        // REQUIRED on Render
       maxAge: 1000 * 60 * 60 * 24,
     },
   })
@@ -55,14 +45,8 @@ app.set("views", path.join(__dirname, "views"));
 
 /* ---------- STATIC ---------- */
 app.use(express.static(path.join(__dirname, "public")));
-app.use(
-  "/bootstrap",
-  express.static(path.join(__dirname, "node_modules/bootstrap/dist"))
-);
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "public/uploads"))
-);
+app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 
 // =============================
