@@ -1,30 +1,21 @@
 require("dotenv").config();
 const express = require("express");
-const path = require("path");
 const session = require("express-session");
-const mysql = require("mysql2/promise");
-const bcrypt = require("bcryptjs");
-const flash = require("connect-flash");
-const expressLayouts = require("express-ejs-layouts");
-
 const MySQLStore = require("express-mysql-session")(session);
+const mysql = require("mysql2/promise");
 
 const app = express();
 
-// =============================
-// Database Connection
-// =============================
+/* ---------- DB ---------- */
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
-// =============================
-// Session Store (DEFINE FIRST)
-// =============================
+/* ---------- SESSION STORE ---------- */
 const sessionStore = new MySQLStore(
   {
     expiration: 1000 * 60 * 60 * 24,
@@ -33,29 +24,21 @@ const sessionStore = new MySQLStore(
   db
 );
 
-// =============================
-// Middleware Setup
-// =============================
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(flash());
-
-app.set("trust proxy", 1); // 🔥 REQUIRED FOR RENDER
-
+/* ---------- SESSION MIDDLEWARE ---------- */
 app.use(
   session({
-    name: "foodiehub.sid",
+    key: "foodiehub.sid",
     secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,   // Render handles HTTPS
-      httpOnly: true,
+      secure: false, // Render handles HTTPS itself
       maxAge: 1000 * 60 * 60 * 24,
     },
   })
 );
+
 
 // expose session to views
 app.use((req, res, next) => {
