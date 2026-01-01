@@ -12,13 +12,7 @@ const MySQLStore = require("express-mysql-session")(session);
 const app = express();
 
 //* ---------- DB ---------- */
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false },
-});
+const db = mysql.createPool(process.env.DATABASE_URL);
 
 /* ---------- SESSION STORE ---------- */
 const sessionStore = new MySQLStore(
@@ -30,6 +24,8 @@ const sessionStore = new MySQLStore(
 );
 
 /* ---------- SESSION MIDDLEWARE ---------- */
+app.set("trust proxy", 1);
+
 app.use(
   session({
     key: "foodiehub.sid",
@@ -38,11 +34,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Render handles HTTPS itself
+      secure: true,
       maxAge: 1000 * 60 * 60 * 24,
     },
   })
 );
+
 
 // expose session to views
 app.use((req, res, next) => {
