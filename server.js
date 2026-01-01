@@ -11,17 +11,15 @@ const MySQLStore = require("express-mysql-session")(session);
 
 const app = express();
 
-//* ---------- DB ---------- */
+/* ---------- DB (FOR APP QUERIES ONLY) ---------- */
 const db = mysql.createPool(process.env.DATABASE_URL);
 
-/* ---------- SESSION STORE ---------- */
-const sessionStore = new MySQLStore(
-  {
-    expiration: 1000 * 60 * 60 * 24,
-    createDatabaseTable: true,
-  },
-  db
-);
+/* ---------- SESSION STORE (IMPORTANT FIX) ---------- */
+const sessionStore = new MySQLStore({
+  uri: process.env.DATABASE_URL,
+  expiration: 1000 * 60 * 60 * 24,
+  createDatabaseTable: true,
+});
 
 /* ---------- SESSION MIDDLEWARE ---------- */
 app.set("trust proxy", 1);
@@ -34,31 +32,37 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,
+      secure: true,          // REQUIRED on Render
       maxAge: 1000 * 60 * 60 * 24,
     },
   })
 );
 
+/* ---------- FLASH & SESSION TO VIEWS ---------- */
+app.use(flash());
 
-// expose session to views
 app.use((req, res, next) => {
   res.locals.session = req.session;
   res.locals.message = req.flash("error");
   next();
 });
 
-// Views
+/* ---------- VIEWS ---------- */
 app.use(expressLayouts);
 app.set("layout", "layout");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Static
+/* ---------- STATIC ---------- */
 app.use(express.static(path.join(__dirname, "public")));
-
-app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
-app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use(
+  "/bootstrap",
+  express.static(path.join(__dirname, "node_modules/bootstrap/dist"))
+);
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "public/uploads"))
+);
 
 
 // =============================
