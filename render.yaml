@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: FoodieHub
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: DB_HOST
+        value: foodiehub-foodiehub1.h.aivencloud.com
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: defaultdb
+      - key: DB_PORT
+        value: "23149"
+      - key: SESSION_SECRET
+        value: supersecretkey
+      - key: PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
