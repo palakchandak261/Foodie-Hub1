@@ -39,7 +39,7 @@
           <div class="food-img-wrapper">
             <% if (m.image_url) { %>
               <img 
-                src="/<%= m.image_url %>" 
+                src="<%= m.image_url.startsWith('/') ? m.image_url : '/' + m.image_url %>" 
                 alt="<%= m.name %>"
                 class="food-img"
                 onerror="this.src='/images/default-food.jpg';"

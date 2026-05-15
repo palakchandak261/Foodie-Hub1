@@ -35,9 +35,10 @@
         
         <!-- 🖼️ Restaurant Image -->
         <div class="restaurant-img-wrapper">
-          <img src="/<%= r.image_url || 'images/default-restaurant.jpg' %>" 
+          <img src="<%= r.image_url ? (r.image_url.startsWith('/') ? r.image_url : '/' + r.image_url) : '/images/default-restaurant.jpg' %>" 
                alt="<%= r.name %>" 
-               class="restaurant-img">
+               class="restaurant-img"
+               onerror="this.src='/images/default-restaurant.jpg'">
         </div>
 
         <div class="card-body text-center p-3">
