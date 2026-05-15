@@ -1,210 +1,506 @@
-
-
-<div class="container mt-4">
-  <h3 class="text-center mb-3 fw-semibold">💳 Checkout</h3>
-
-  <div class="row justify-content-center small">
-    <!-- LEFT: order + payment form -->
-
-    <% if (isFirstOrder) { %>
-<div class="coupon-banner small text-center fw-semibold" style="background: linear-gradient(135deg, #00c851, #007e33); color: white; padding: 15px 10px; border-radius: 10px; margin: 30px auto 15px; width: 85%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); animation: pulse 2s infinite;">
-  🎉 First-time user? Use <span style="background: white; color: #007e33; padding: 3px 8px; border-radius: 6px; margin-bottom: 150px;">FIRST10</span> for 10% OFF 💚
-</div>
-<% } %>
-
-<div class="coupon-banner small text-center fw-semibold" style="background: linear-gradient(135deg, #ff7b00, #ffb347); color: white; padding: 12px 8px; border-radius: 10px; margin: 20px auto; width: 85%; box-shadow: 0 3px 8px rgba(0,0,0,0.2); animation: pulse 2s infinite;">
-  💥 Use <span style="background: white; color: #ff7b00; padding: 2px 8px; border-radius: 6px; margin-bottom: 500px; ">SAVE5</span> for 5% OFF 🎉
-</div>
-
-    <div class="col-lg-6 col-md-8 mb-4">
-      <div class="card p-3 shadow-sm" style="border-radius: 12px; font-size: 0.9rem; background-color:rgb(203, 202, 202);margin-bottom: 80px;">
-        <h5 class="mb-3 text-center fw-bold">🛒 Review Your Order</h5>
-
-        <% if (cartItems && cartItems.length > 0) { %>
-          <ul class="list-group mb-3">
-            <% cartItems.forEach(item => { %>
-              <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                <div>
-                  <strong><%= item.name %></strong><br>
-                  <span class="text-muted small">Qty: <%= item.quantity %></span>
-                </div>
-                <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
-              </li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <p class="text-muted text-center">Your cart is empty.</p>
-        <% } %>
-
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <strong>Total</strong>
-          <strong>₹<%= Number(totalAmount || 0).toFixed(2) %></strong>
-        </div>
-
-        <% if (typeof rewardPoints !== 'undefined' && rewardPoints > 0) { %>
-          <div class="alert alert-warning py-2 small">
-            🎁 You have <strong><%= rewardPoints %></strong> reward points available.
-          </div>
-        <% } %>
-
-        <form id="checkoutForm" action="/checkout" method="POST">
-          <!-- 🏠 Address -->
-          <div class="mb-2">
-            <label for="address" class="form-label fw-semibold">🏠 Delivery Address</label>
-            <textarea
-              id="address"
-              name="address"
-              class="form-control form-control-sm"
-              rows="2"
-              placeholder="Enter delivery address..."
-              required
-              style="resize: none; border-radius: 8px; font-size: 0.85rem;"
-            ><%= typeof address !== 'undefined' ? address : '' %></textarea>
-          </div>
-
-          <!-- Payment -->
-          <div class="mb-2">
-            <label for="paymentMethod" class="form-label fw-semibold">Payment Method</label>
-            <select class="form-select form-select-sm" id="paymentMethod" name="paymentMethod" required>
-              <option value="COD">Cash on Delivery</option>
-              <option value="UPI">UPI (PhonePe / GPay / Paytm)</option>
-              <option value="QR">Pay via QR</option>
-            </select>
-          </div>
-
-          <!-- QR Payment -->
-          <div id="qrArea" class="text-center mb-3" style="display: <%= showQR ? 'block' : 'none' %>;">
-            <h6>Scan to Pay</h6>
-            <img src="/images/scanner.png" alt="QR" style="max-width:150px; border-radius:6px;" />
-            <p class="text-muted small mt-2">After payment, click Confirm Payment.</p>
-            <button type="button" id="confirmPaymentBtn" class="btn btn-success btn-sm" ">✅ Confirm Payment</button>
-          </div>
-
-          <!-- Coupon -->
-          <div class="mb-2 mt-3">
-            <label for="couponCode" class="form-label fw-semibold">💸 Coupon</label>
-            <div class="input-group input-group-sm">
-              <input type="text" id="couponCode" name="couponCode" class="form-control" placeholder="Enter code (e.g., SAVE5)" />
-              <button type="button" id="applyCouponBtn" class="btn btn-success btn-sm">Apply</button>
-            </div>
-            <div id="couponMsg" class="mt-1 text-success fw-bold small" style="display:none;"></div>
-          </div>
-
-          <div class="d-grid gap-2 mt-3">
-            <button id="proceedBtn" type="submit" class="btn btn-primary btn-sm fw-semibold" >Confirm & Pay</button>
-            <a href="/cart" class="btn btn-outline-secondary btn-sm">Edit Cart</a>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- RIGHT: order summary -->
-    <div class="col-lg-4 col-md-5">
-      <div class="card p-3 shadow-sm" style="border-radius: 12px; font-size: 0.9rem; background-color:rgb(203, 202, 202);">
-        <h6 class="mb-3 text-center fw-bold">🧾 Order Summary</h6>
-
-        <% if (cartItems && cartItems.length > 0) { %>
-          <ul class="list-group mb-2">
-            <% cartItems.forEach(item => { %>
-              <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                <div>
-                  <strong><%= item.name %></strong><br>
-                  <span class="text-muted small">Qty: <%= item.quantity %></span>
-                </div>
-                <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
-              </li>
-            <% }) %>
-          </ul>
-        <% } %>
-
-        <div class="d-flex justify-content-between fw-semibold">
-          <span>Total</span>
-          <span>₹<%= Number(totalAmount || 0).toFixed(2) %></span>
-        </div>
-        <p class="text-muted small mt-1 mb-0 text-center">Estimated delivery: 30–45 mins</p>
-      </div>
-<% if (bonusAvailable) { %>
-<div class="alert alert-success text-center fw-bold">
-  🎉 You unlocked ₹100 OFF on this order!
-</div>
-<% } %>
-
-    </div>
-
-  </div>
-  
-</div>
-
-
-
-<!-- Coupon Banners -->
-
-
 <style>
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+.checkout-page { padding-top: 90px; padding-bottom: 80px; }
+
+/* ── Section title ── */
+.co-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.9rem; font-weight: 700;
+  color: #6a2e1b; text-align: center;
+  margin-bottom: 28px;
+}
+
+/* ── Cards ── */
+.co-card {
+  background: rgba(255,255,255,0.93);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+.co-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 700;
+  color: #6a2e1b; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Item rows ── */
+.item-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px dashed #f0e8e0;
+  font-size: 0.85rem;
+}
+.item-row:last-child { border-bottom: none; }
+.item-name { font-weight: 600; color: #3e2723; }
+.item-qty  { font-size: 0.75rem; color: #aaa; }
+.item-price { font-weight: 700; color: #ff5e0e; }
+
+/* ── Summary rows ── */
+.summary-row {
+  display: flex; justify-content: space-between;
+  font-size: 0.85rem; padding: 5px 0;
+  color: #555;
+}
+.summary-row.total {
+  font-size: 1rem; font-weight: 800;
+  color: #3e2723; border-top: 2px solid #f0e8e0;
+  margin-top: 6px; padding-top: 10px;
+}
+.summary-row .discount-val { color: #2e7d32; font-weight: 700; }
+
+/* ── Coupon input ── */
+.coupon-input-wrap {
+  display: flex; gap: 8px;
+}
+.coupon-input-wrap input {
+  flex: 1; border-radius: 10px;
+  border: 1.5px solid #ffcc80;
+  padding: 9px 14px; font-size: 0.85rem;
+  outline: none; transition: border-color 0.2s;
+  width: auto;
+  background: #fff;
+}
+.coupon-input-wrap input:focus { border-color: #ff5e0e; }
+.coupon-input-wrap input::placeholder { color: #ccc; }
+.btn-apply {
+  background: linear-gradient(90deg,#ff914d,#ff5e0e) !important;
+  border: none; border-radius: 10px;
+  padding: 9px 18px; font-size: 0.82rem;
+  font-weight: 700; color: #fff !important;
+  cursor: pointer; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(255,94,14,0.3);
+  transition: all 0.2s;
+}
+.btn-apply:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(255,94,14,0.4); }
+.btn-remove-coupon {
+  background: transparent !important;
+  border: 1.5px solid #e57373 !important;
+  color: #e57373 !important;
+  border-radius: 10px; padding: 9px 14px;
+  font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; box-shadow: none !important;
+}
+
+/* Coupon status messages */
+.coupon-success {
+  background: #e8f5e9; border: 1px solid #a5d6a7;
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 0.82rem; color: #2e7d32; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px;
+}
+.coupon-error {
+  background: #ffebee; border: 1px solid #ef9a9a;
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 0.82rem; color: #c62828; font-weight: 600;
+  margin-top: 8px;
+}
+
+/* ── Promo banners ── */
+.promo-banner {
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 0.8rem; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+  animation: promoPulse 2.5s infinite;
+}
+.promo-banner .promo-code {
+  background: rgba(255,255,255,0.9);
+  border-radius: 6px; padding: 2px 10px;
+  font-weight: 800; letter-spacing: 1px;
+  cursor: pointer; transition: background 0.2s;
+}
+.promo-banner .promo-code:hover { background: #fff; }
+@keyframes promoPulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.01); }
+}
+
+/* ── Payment select ── */
+.payment-option {
+  border: 2px solid #f0e8e0; border-radius: 12px;
+  padding: 12px 16px; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.85rem; font-weight: 600;
+  background: #fff;
+}
+.payment-option:hover { border-color: #ff914d; background: #fff8f0; }
+.payment-option.selected { border-color: #ff5e0e; background: #fff3e8; }
+.payment-option input[type=radio] { accent-color: #ff5e0e; width: 16px; height: 16px; }
+
+/* ── QR area ── */
+.qr-area {
+  background: #fff8f0; border-radius: 14px;
+  padding: 20px; text-align: center;
+  border: 2px dashed #ffcc80;
+  margin-top: 12px;
+}
+.qr-area img { max-width: 140px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+/* ── Submit button ── */
+.btn-confirm {
+  width: 100%; padding: 14px;
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  border: none; border-radius: 14px;
+  color: #fff !important; font-size: 1rem; font-weight: 700;
+  box-shadow: 0 6px 20px rgba(255,94,14,0.4);
+  transition: all 0.3s; cursor: pointer;
+  letter-spacing: 0.3px;
+}
+.btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,94,14,0.5); }
+.btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* ── Bonus badge ── */
+.bonus-badge {
+  background: linear-gradient(135deg,#e8f5e9,#c8e6c9);
+  border: 1.5px solid #a5d6a7;
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 0.82rem; color: #2e7d32; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* ── Reward points ── */
+.rewards-badge {
+  background: linear-gradient(135deg,#fff8e1,#ffecb3);
+  border: 1.5px solid #ffe082;
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 0.82rem; color: #e65100; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
 }
 </style>
 
+<div class="container checkout-page" style="max-width:1000px;">
+  <h2 class="co-title">💳 Checkout</h2>
+
+  <!-- Promo banners -->
+  <% if (isFirstOrder) { %>
+  <div class="promo-banner" style="background:linear-gradient(135deg,#00c851,#007e33); color:#fff;">
+    🎉 First order?
+    <span class="promo-code" style="color:#007e33;" onclick="applyPromoCode('FIRST10')">FIRST10</span>
+    for <strong>10% OFF</strong> — click to apply!
+  </div>
+  <% } %>
+  <div class="promo-banner" style="background:linear-gradient(135deg,#ff7b00,#ffb347); color:#fff;">
+    💥 Use code
+    <span class="promo-code" style="color:#ff7b00;" onclick="applyPromoCode('SAVE5')">SAVE5</span>
+    for <strong>5% OFF</strong> on any order — click to apply!
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ── Left: Form ── -->
+    <div class="col-lg-7">
+
+      <form id="checkoutForm" action="/checkout" method="POST">
+        <!-- Address -->
+        <div class="co-card">
+          <div class="co-card-title">🏠 Delivery Address</div>
+          <textarea id="address" name="address" class="form-control"
+            rows="2" placeholder="Enter your full delivery address…" required
+            style="border-radius:10px; border:1.5px solid #ffcc80; font-size:0.85rem; resize:none;"
+          ><%= typeof address !== 'undefined' ? address : '' %></textarea>
+        </div>
+
+        <!-- Payment -->
+        <div class="co-card">
+          <div class="co-card-title">💳 Payment Method</div>
+
+          <label class="payment-option" id="opt-COD">
+            <input type="radio" name="paymentMethod" value="COD" checked onchange="selectPayment('COD')">
+            <span style="font-size:1.4rem;">💵</span>
+            <div>
+              <div>Cash on Delivery</div>
+              <div style="font-size:0.72rem; color:#aaa; font-weight:400;">Pay when your order arrives</div>
+            </div>
+          </label>
+
+          <label class="payment-option" id="opt-UPI">
+            <input type="radio" name="paymentMethod" value="UPI" onchange="selectPayment('UPI')">
+            <span style="font-size:1.4rem;">📱</span>
+            <div>
+              <div>UPI Payment</div>
+              <div style="font-size:0.72rem; color:#aaa; font-weight:400;">PhonePe / GPay / Paytm</div>
+            </div>
+          </label>
+
+          <label class="payment-option" id="opt-QR">
+            <input type="radio" name="paymentMethod" value="QR" onchange="selectPayment('QR')">
+            <span style="font-size:1.4rem;">📷</span>
+            <div>
+              <div>Scan QR Code</div>
+              <div style="font-size:0.72rem; color:#aaa; font-weight:400;">Scan and pay instantly</div>
+            </div>
+          </label>
+
+          <!-- QR area -->
+          <div id="qrArea" class="qr-area" style="display:<%= showQR ? 'block' : 'none' %>;">
+            <h6 class="fw-bold mb-3">📷 Scan to Pay</h6>
+            <img src="/images/scanner.png" alt="QR Code" />
+            <p class="text-muted small mt-3 mb-3">After payment, click the button below</p>
+            <button type="button" id="confirmPaymentBtn" class="btn btn-sm px-4">✅ Confirm Payment</button>
+          </div>
+        </div>
+
+        <!-- Coupon -->
+        <div class="co-card">
+          <div class="co-card-title">🎟️ Coupon Code</div>
+
+          <% if (bonusAvailable) { %>
+          <div class="bonus-badge">
+            🎉 <span>You've unlocked <strong>₹50 OFF</strong> (1000 reward points)! Applied automatically.</span>
+          </div>
+          <% } %>
+
+          <% if (rewardPoints > 0) { %>
+          <div class="rewards-badge">
+            ⭐ <span>You have <strong><%= rewardPoints %></strong> reward points.
+            <% if (rewardPoints < 1000) { %>
+              Earn <strong><%= 1000 - (rewardPoints % 1000) %></strong> more to unlock ₹50 OFF!
+            <% } else { %>
+              🎉 Bonus unlocked — ₹50 OFF applied!
+            <% } %>
+            </span>
+          </div>
+          <% } %>
+
+          <div class="coupon-input-wrap">
+            <input type="text" id="couponInput" placeholder="Enter coupon code (e.g. SAVE5, GIFT…)"
+                   style="text-transform:uppercase;" autocomplete="off" />
+            <button type="button" class="btn-apply" id="applyBtn" onclick="applyCoupon()">Apply</button>
+          </div>
+          <div id="couponFeedback"></div>
+
+          <!-- Hidden field for form submission -->
+          <input type="hidden" id="couponCodeField" name="couponCode" value="" />
+        </div>
+
+        <button type="submit" class="btn-confirm" id="confirmBtn">
+          🛒 Confirm & Place Order
+        </button>
+        <a href="/cart" class="btn w-100 mt-2"
+           style="background:transparent; border:2px solid #ff5e0e; color:#ff5e0e !important; box-shadow:none; font-size:0.85rem;">
+          ← Edit Cart
+        </a>
+      </form>
+    </div>
+
+    <!-- ── Right: Summary ── -->
+    <div class="col-lg-5">
+      <div class="co-card" style="position:sticky; top:90px;">
+        <div class="co-card-title">🧾 Order Summary</div>
+
+        <!-- Items -->
+        <% if (cartItems && cartItems.length) { %>
+          <% cartItems.forEach(item => { %>
+          <div class="item-row">
+            <div>
+              <div class="item-name"><%= item.name %></div>
+              <div class="item-qty">Qty: <%= item.quantity %></div>
+            </div>
+            <div class="item-price">₹<%= (item.price * item.quantity).toFixed(2) %></div>
+          </div>
+          <% }) %>
+        <% } %>
+
+        <div style="margin-top:14px;">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>₹<%= Number(totalAmount).toFixed(2) %></span>
+          </div>
+          <div class="summary-row" id="discountRow" style="display:none;">
+            <span>Coupon Discount</span>
+            <span class="discount-val" id="discountDisplay">-₹0.00</span>
+          </div>
+          <% if (bonusAvailable) { %>
+          <div class="summary-row">
+            <span>Reward Bonus 🎉</span>
+            <span class="discount-val">-₹50.00</span>
+          </div>
+          <% } %>
+          <div class="summary-row">
+            <span>Delivery</span>
+            <span class="discount-val">FREE 🎉</span>
+          </div>
+          <div class="summary-row total">
+            <span>Total Payable</span>
+            <span id="finalTotal">₹<%= Number(totalAmount - (bonusAvailable ? 100 : 0)).toFixed(2) %></span>
+          </div>
+        </div>
+
+        <!-- Reward Progress -->
+        <% if (!bonusAvailable) { %>
+        <div style="margin-top:16px; padding-top:14px; border-top:1px dashed #f0e8e0;">
+          <% const _rPct  = (typeof rewardPct      !== 'undefined') ? rewardPct      : 0; %>
+          <% const _rProg = (typeof rewardProgress !== 'undefined') ? rewardProgress : 0; %>
+          <% const _rPts  = (typeof rewardPoints   !== 'undefined') ? rewardPoints   : 0; %>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.75rem; font-weight:700; color:#6a2e1b;">⭐ Reward Points</span>
+            <span style="font-size:0.75rem; font-weight:800; color:#ff5e0e;"><%= _rPts %> / 1000 pts</span>
+          </div>
+          <div style="background:#f0e8e0; border-radius:10px; height:8px; overflow:hidden;">
+            <div style="width:<%= _rPct %>%; height:100%; background:linear-gradient(90deg,#ff914d,#ff5e0e); border-radius:10px; transition:width 0.6s ease;"></div>
+          </div>
+          <p style="font-size:0.68rem; color:#aaa; margin-top:5px; margin-bottom:0;">
+            <% const needed = 1000 - _rProg; %>
+            <%= needed > 0 ? needed + ' more points to unlock ₹50 OFF!' : '🎉 Bonus unlocked!' %>
+          </p>
+        </div>
+        <% } %>
+
+        <p class="text-muted text-center mt-3 mb-0" style="font-size:0.72rem;">
+          🕐 Estimated delivery: 30–45 mins
+        </p>
+
+        <a href="/gift-coupons" class="d-block text-center mt-3"
+           style="font-size:0.78rem; color:#ff5e0e; font-weight:600; text-decoration:none;">
+          🎁 Get more coupons →
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script>
-(function(){
-  const paymentSelect = document.getElementById('paymentMethod');
-  const qrArea = document.getElementById('qrArea');
-  const confirmBtn = document.getElementById('confirmPaymentBtn');
-  const checkoutForm = document.getElementById('checkoutForm');
+const SUBTOTAL     = <%= Number(totalAmount) %>;
+const BONUS        = <%= bonusAvailable ? 50 : 0 %>;
+let   appliedDiscount = 0;
 
-  paymentSelect.addEventListener('change', () => {
-    qrArea.style.display = (paymentSelect.value === 'QR') ? 'block' : 'none';
+// ── Payment option UI ─────────────────────────────────────────────────────
+function selectPayment(val) {
+  ["COD","UPI","QR"].forEach(v => {
+    const el = document.getElementById("opt-" + v);
+    if (el) el.classList.toggle("selected", v === val);
   });
+  document.getElementById("qrArea").style.display = val === "QR" ? "block" : "none";
+}
+// Set initial selected state
+selectPayment("COD");
 
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', async () => {
-      confirmBtn.disabled = true;
-      confirmBtn.innerText = 'Processing...';
-      try {
-        const res = await fetch('/confirm-payment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        const data = await res.json();
-        if (data && data.ok && data.orderId) {
-          window.location.href = `/track-order/${data.orderId}`;
-        } else {
-          alert(data.message || 'Payment failed');
-          confirmBtn.disabled = false;
-          confirmBtn.innerText = '✅ Confirm Payment';
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error processing payment. Try again.');
-        confirmBtn.disabled = false;
-        confirmBtn.innerText = '✅ Confirm Payment';
-      }
-    });
+// ── Apply promo code (click from banner) ──────────────────────────────────
+function applyPromoCode(code) {
+  document.getElementById("couponInput").value = code;
+  applyCoupon();
+}
+
+// ── Apply coupon via AJAX ─────────────────────────────────────────────────
+async function applyCoupon() {
+  const code = document.getElementById("couponInput").value.trim().toUpperCase();
+  const fb   = document.getElementById("couponFeedback");
+
+  if (!code) {
+    fb.innerHTML = '<div class="coupon-error">⚠️ Please enter a coupon code</div>';
+    return;
   }
 
-  checkoutForm.addEventListener('submit', (e) => {
-    const method = paymentSelect.value;
-    if (method === 'QR') {
-      e.preventDefault();
-      const query = new URLSearchParams(window.location.search);
-      query.set('qr', '1');
-      window.location.href = window.location.pathname + '?' + query.toString();
+  const applyBtn = document.getElementById("applyBtn");
+  applyBtn.textContent = "Checking…";
+  applyBtn.disabled = true;
+
+  try {
+    const res  = await fetch("/api/validate-coupon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, total: SUBTOTAL })
+    });
+    const data = await res.json();
+
+    if (data.valid) {
+      appliedDiscount = data.discount;
+      document.getElementById("couponCodeField").value = code;
+
+      const label = data.type === "FLAT"
+        ? "₹" + data.value + " flat off"
+        : data.value + "% off";
+
+      fb.innerHTML = `
+        <div class="coupon-success">
+          🎉 <span><strong>${code}</strong> applied — ${label} (saving ₹${data.discount.toFixed(2)})</span>
+          <button type="button" class="btn-remove-coupon ms-auto" onclick="removeCoupon()">✕ Remove</button>
+        </div>`;
+
+      updateTotal();
+      applyBtn.textContent = "✅ Applied";
+    } else {
+      appliedDiscount = 0;
+      document.getElementById("couponCodeField").value = "";
+      fb.innerHTML = `<div class="coupon-error">❌ ${data.message || "Invalid coupon code"}</div>`;
+      updateTotal();
+      applyBtn.textContent = "Apply";
+      applyBtn.disabled = false;
+    }
+  } catch (e) {
+    fb.innerHTML = '<div class="coupon-error">❌ Could not validate coupon. Try again.</div>';
+    applyBtn.textContent = "Apply";
+    applyBtn.disabled = false;
+  }
+}
+
+function removeCoupon() {
+  appliedDiscount = 0;
+  document.getElementById("couponInput").value = "";
+  document.getElementById("couponCodeField").value = "";
+  document.getElementById("couponFeedback").innerHTML = "";
+  document.getElementById("applyBtn").textContent = "Apply";
+  document.getElementById("applyBtn").disabled = false;
+  updateTotal();
+}
+
+function updateTotal() {
+  const discRow = document.getElementById("discountRow");
+  const discDisplay = document.getElementById("discountDisplay");
+  const finalTotal  = document.getElementById("finalTotal");
+
+  if (appliedDiscount > 0) {
+    discRow.style.display = "flex";
+    discDisplay.textContent = "-₹" + appliedDiscount.toFixed(2);
+  } else {
+    discRow.style.display = "none";
+  }
+
+  const total = Math.max(0, SUBTOTAL - appliedDiscount - BONUS);
+  finalTotal.textContent = "₹" + total.toFixed(2);
+}
+
+// ── QR confirm payment ────────────────────────────────────────────────────
+const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
+if (confirmPaymentBtn) {
+  confirmPaymentBtn.addEventListener("click", async () => {
+    confirmPaymentBtn.disabled = true;
+    confirmPaymentBtn.textContent = "Processing…";
+    try {
+      const res  = await fetch("/confirm-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const data = await res.json();
+      if (data && data.ok && data.orderId) {
+        window.location.href = "/track-order/" + data.orderId;
+      } else {
+        alert(data.message || "Payment failed");
+        confirmPaymentBtn.disabled = false;
+        confirmPaymentBtn.textContent = "✅ Confirm Payment";
+      }
+    } catch (err) {
+      alert("Error processing payment. Try again.");
+      confirmPaymentBtn.disabled = false;
+      confirmPaymentBtn.textContent = "✅ Confirm Payment";
     }
   });
-})();
+}
 
-document.getElementById("applyCouponBtn").addEventListener("click", async () => {
-  const code = document.getElementById("couponCode").value.trim();
-  if (!code) return alert("Please enter a coupon code!");
-  const form = document.getElementById("checkoutForm");
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "couponCode";
-  input.value = code;
-  form.appendChild(input);
-  form.submit();
+// ── Form submit guard ─────────────────────────────────────────────────────
+document.getElementById("checkoutForm").addEventListener("submit", (e) => {
+  const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+  if (method === "QR") {
+    e.preventDefault();
+    document.getElementById("qrArea").style.display = "block";
+    document.getElementById("qrArea").scrollIntoView({ behavior: "smooth" });
+  }
 });
 
+// ── Enter key on coupon input ─────────────────────────────────────────────
+document.getElementById("couponInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); applyCoupon(); }
+});
 </script>
-
-

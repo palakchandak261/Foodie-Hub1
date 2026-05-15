@@ -1,141 +1,384 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📦 My Orders | Foodie</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background: linear-gradient(135deg, #fef6e4, #fde7c2);
-      font-family: 'Poppins', sans-serif;
-      padding: 50px 15px;
-      min-height: 100vh;
-    }
+<style>
+/* ── Page ── */
+.orders-page { padding-top: 90px; padding-bottom: 80px; }
 
-    h2 {
-      font-weight: 700;
-      color: #ff7b00;
-      text-shadow: 1px 1px 2px rgba(255, 123, 0, 0.2);
-    }
+/* ── Hero ── */
+.orders-hero {
+  background: linear-gradient(135deg, #6a2e1b 0%, #ff7b00 55%, #ff5e0e 100%);
+  border-radius: 22px;
+  padding: 32px 36px 28px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 32px;
+  box-shadow: 0 10px 36px rgba(255,94,14,0.3);
+}
+.orders-hero::before {
+  content: "📦";
+  font-size: 150px;
+  position: absolute;
+  right: -10px; top: -20px;
+  opacity: 0.07;
+  pointer-events: none;
+}
+.orders-hero h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 700; margin-bottom: 4px;
+}
+.orders-hero p { opacity: 0.85; font-size: 0.9rem; margin: 0; }
 
-    .order-card {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 18px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-      padding: 25px;
-      margin-bottom: 25px;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-      border-left: 6px solid #ff7b00;
-    }
+/* ── Filter tabs ── */
+.filter-tabs {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.filter-tab {
+  padding: 7px 18px;
+  border-radius: 30px;
+  font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all 0.2s;
+  background: rgba(255,255,255,0.85);
+  color: #888;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.filter-tab:hover { border-color: #ff914d; color: #ff5e0e; }
+.filter-tab.active {
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 14px rgba(255,94,14,0.35);
+}
 
-    .order-card:hover {
-      transform: scale(1.02);
-      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
-    }
+/* ── Order card ── */
+.order-card {
+  background: rgba(255,255,255,0.95);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+  margin-bottom: 18px;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border-left: 5px solid #ff5e0e;
+}
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 32px rgba(255,94,14,0.18);
+}
+.order-card.status-delivered { border-left-color: #2e7d32; }
+.order-card.status-cancelled { border-left-color: #c62828; }
+.order-card.status-preparing { border-left-color: #f57c00; }
+.order-card.status-ontheway  { border-left-color: #1565c0; }
+.order-card.status-placed    { border-left-color: #6a2e1b; }
 
-    .status {
-      font-weight: 600;
-      border-radius: 10px;
-      padding: 5px 15px;
-      display: inline-block;
-    }
+/* Card header */
+.oc-header {
+  padding: 16px 20px 12px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 10px;
+  border-bottom: 1px solid #f5ede4;
+}
+.oc-restaurant {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem; font-weight: 700;
+  color: #3e2723;
+}
+.oc-order-id {
+  font-size: 0.72rem; color: #aaa; font-weight: 600;
+  margin-top: 2px;
+}
 
-    .status.Placed {
-      background-color: #cce5ff;
-      color: #004085;
-    }
+/* Status badge */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 30px;
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.badge-placed    { background:#fff3e0; color:#e65100; }
+.badge-confirmed { background:#fff3e0; color:#e65100; }
+.badge-preparing { background:#fff8e1; color:#f57c00; }
+.badge-ontheway  { background:#e3f2fd; color:#1565c0; }
+.badge-delivered { background:#e8f5e9; color:#2e7d32; }
+.badge-cancelled { background:#ffebee; color:#c62828; }
 
-    .status.Preparing {
-      background-color: #fff3cd;
-      color: #856404;
-    }
+/* Card body */
+.oc-body {
+  padding: 14px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.oc-meta-item { display: flex; flex-direction: column; gap: 2px; }
+.oc-meta-label {
+  font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: #bbb;
+}
+.oc-meta-value {
+  font-size: 0.85rem; font-weight: 700; color: #3e2723;
+}
+.oc-meta-value.price { color: #ff5e0e; font-size: 1rem; }
+.oc-meta-value.saved { color: #2e7d32; font-size: 0.78rem; font-weight: 600; }
 
-    .status.ontheway {
-      background-color: #d1ecf1;
-      color: #0c5460;
-    }
+/* Card footer */
+.oc-footer {
+  padding: 12px 20px;
+  background: #fdf8f4;
+  border-top: 1px solid #f5ede4;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+.oc-date {
+  font-size: 0.72rem; color: #bbb; font-weight: 500;
+  display: flex; align-items: center; gap: 5px;
+}
 
-    .status.Delivered {
-      background-color: #d4edda;
-      color: #155724;
-    }
+/* Buttons */
+.btn-track-order {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 20px; border-radius: 30px;
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  color: #fff !important; font-size: 0.78rem; font-weight: 700;
+  text-decoration: none; border: none;
+  box-shadow: 0 3px 12px rgba(255,94,14,0.35);
+  transition: all 0.2s;
+}
+.btn-track-order:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255,94,14,0.45);
+}
+.btn-track-order.delivered {
+  background: linear-gradient(90deg,#43a047,#2e7d32);
+  box-shadow: 0 3px 12px rgba(46,125,50,0.3);
+}
+.btn-track-order.cancelled {
+  background: #f5f5f5; color: #aaa !important;
+  box-shadow: none; cursor: default;
+  pointer-events: none;
+}
 
-    .status.Cancelled {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
+/* Coupon chip */
+.coupon-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #fff3e0; border: 1px solid #ffcc80;
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 0.68rem; font-weight: 700; color: #e65100;
+}
 
-    .btn-track {
-      border-radius: 25px;
-      background: linear-gradient(90deg, #009245, #00c9ff);
-      color: white;
-      padding: 8px 20px;
-      text-decoration: none;
-      font-weight: 600;
-      border: none;
-      transition: 0.3s ease;
-    }
+/* ── Stats row ── */
+.stat-card {
+  background: rgba(255,255,255,0.92);
+  border-radius: 16px; padding: 16px 20px;
+  text-align: center;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+}
+.stat-card .num {
+  font-size: 1.7rem; font-weight: 800;
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-card .lbl {
+  font-size: 0.7rem; color: #aaa;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
 
-    .btn-track:hover {
-      transform: scale(1.05);
-      background: linear-gradient(90deg, #007e33, #00b4db);
-    }
+/* ── Empty state ── */
+.empty-state {
+  text-align: center; padding: 60px 24px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 22px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+}
+.empty-state .es-icon { font-size: 4.5rem; margin-bottom: 14px; }
 
-    .empty-state {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 18px;
-      padding: 50px 20px;
-      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
-    }
+/* ── Animations ── */
+.order-card { animation: slideUp 0.4s ease both; }
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.order-card:nth-child(1) { animation-delay: 0.05s; }
+.order-card:nth-child(2) { animation-delay: 0.10s; }
+.order-card:nth-child(3) { animation-delay: 0.15s; }
+.order-card:nth-child(4) { animation-delay: 0.20s; }
+.order-card:nth-child(5) { animation-delay: 0.25s; }
+</style>
 
-    .btn-primary {
-      background: linear-gradient(90deg, #ff7b00, #ff9966);
-      border: none;
-      font-weight: 600;
-    }
+<div class="container orders-page" style="max-width:860px;">
 
-    .btn-primary:hover {
-      background: linear-gradient(90deg, #ff6600, #ff8533);
-    }
-  </style>
-</head>
+  <!-- Hero -->
+  <div class="orders-hero">
+    <h2>📦 My Orders</h2>
+    <p>Track, review and manage all your past orders in one place</p>
+  </div>
 
-<body>
-  <div class="container">
-    <h2 class="text-center mb-5">📦 My Orders</h2>
+  <% if (!orders || orders.length === 0) { %>
 
-    <% if (!orders || orders.length === 0) { %>
-      <div class="text-center empty-state">
-        <h4 class="text-muted mb-3">No orders yet 😅</h4>
-        <p class="text-secondary">Looks like you haven’t ordered anything yet!</p>
-        <a href="/restaurants" class="btn btn-primary mt-3 px-4 py-2">Browse Restaurants 🍽️</a>
+    <div class="empty-state">
+      <div class="es-icon">🍽️</div>
+      <h4 class="fw-bold" style="color:#6a2e1b; font-family:'Playfair Display',serif;">No orders yet!</h4>
+      <p class="text-muted mb-4">Looks like you haven't ordered anything yet. Let's fix that!</p>
+      <a href="/restaurants" class="btn">🍴 Browse Restaurants</a>
+    </div>
+
+  <% } else { %>
+
+    <%
+      const totalOrders   = orders.length;
+      const totalSpent    = orders.reduce((s,o) => s + Number(o.total_amount), 0);
+      const deliveredCount = orders.filter(o => (o.status||'').toLowerCase() === 'delivered').length;
+      const totalSaved    = orders.reduce((s,o) => s + Number(o.discount||0), 0);
+    %>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="num"><%= totalOrders %></div>
+          <div class="lbl">Total Orders</div>
+        </div>
       </div>
-    <% } else { %>
-      <% orders.forEach(order => { 
-          let statusClass = order.status.replace(/\s+/g, '').toLowerCase(); 
-      %>
-        <div class="order-card">
-          <div class="d-flex justify-content-between align-items-start flex-wrap">
-            <div>
-              <h5 class="fw-bold text-dark mb-2"><%= order.restaurant_name %></h5>
-              <p class="mb-1"><strong>Order ID:</strong> #<%= order.id %></p>
-              <p class="mb-1"><strong>Total:</strong> ₹<%= order.total_amount- order.total_amount*0.05 %></p>
-              <p class="mb-1"><strong>Payment:</strong> <%= order.payment_method %></p>
-              <p class="mb-1"><strong>Date:</strong> <%= new Date(order.order_date).toLocaleString() %></p>
-              <p class="mb-1"><strong>Status:</strong> 
-                <span class="status <%= statusClass %>"><%= order.status %></span>
-              </p>
-            </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="num">₹<%= totalSpent.toFixed(0) %></div>
+          <div class="lbl">Total Spent</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="num"><%= deliveredCount %></div>
+          <div class="lbl">Delivered</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="num">₹<%= totalSaved.toFixed(0) %></div>
+          <div class="lbl">Total Saved</div>
+        </div>
+      </div>
+    </div>
 
-            <div class="text-end mt-3 mt-md-0">
-              <a href="/track-order/<%= order.id %>" class="btn-track">🚚 Track Order</a>
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="filterOrders('all', this)">🗂 All (<%= totalOrders %>)</div>
+      <div class="filter-tab" onclick="filterOrders('placed', this)">🕐 Placed</div>
+      <div class="filter-tab" onclick="filterOrders('preparing', this)">👨‍🍳 Preparing</div>
+      <div class="filter-tab" onclick="filterOrders('ontheway', this)">🚚 On the Way</div>
+      <div class="filter-tab" onclick="filterOrders('delivered', this)">✅ Delivered</div>
+      <div class="filter-tab" onclick="filterOrders('cancelled', this)">❌ Cancelled</div>
+    </div>
+
+    <!-- Order cards -->
+    <div id="ordersList">
+      <% orders.forEach((order, idx) => {
+        const rawStatus  = (order.status || 'Placed');
+        const statusKey  = rawStatus.toLowerCase().replace(/\s+/g,'');
+        const statusEmoji = {
+          placed: '🕐', confirmed: '✅', preparing: '👨‍🍳',
+          ontheway: '🚚', delivered: '🎉', cancelled: '❌'
+        }[statusKey] || '📦';
+
+        const isDelivered = statusKey === 'delivered';
+        const isCancelled = statusKey === 'cancelled';
+        const finalTotal  = Number(order.total_amount);
+        const savedAmt    = Number(order.discount || 0);
+        const earnedPts   = Math.floor(finalTotal);
+      %>
+
+      <div class="order-card status-<%= statusKey %>" data-status="<%= statusKey %>">
+
+        <!-- Header -->
+        <div class="oc-header">
+          <div>
+            <div class="oc-restaurant">
+              🍴 <%= order.restaurant_name || 'Restaurant' %>
             </div>
+            <div class="oc-order-id">Order #<%= order.order_id %></div>
+          </div>
+          <span class="status-badge badge-<%= statusKey %>">
+            <%= statusEmoji %> <%= rawStatus %>
+          </span>
+        </div>
+
+        <!-- Body -->
+        <div class="oc-body">
+          <div class="oc-meta-item">
+            <span class="oc-meta-label">💰 Amount Paid</span>
+            <span class="oc-meta-value price">₹<%= finalTotal.toFixed(2) %></span>
+            <% if (savedAmt > 0) { %>
+              <span class="oc-meta-value saved">You saved ₹<%= savedAmt.toFixed(2) %></span>
+            <% } %>
+          </div>
+
+          <div class="oc-meta-item">
+            <span class="oc-meta-label">💳 Payment</span>
+            <span class="oc-meta-value"><%= order.payment_method %></span>
+          </div>
+
+          <div class="oc-meta-item">
+            <span class="oc-meta-label">🛒 Items</span>
+            <span class="oc-meta-value"><%= order.item_count || '—' %> item<%= order.item_count !== 1 ? 's' : '' %></span>
+          </div>
+
+          <div class="oc-meta-item">
+            <span class="oc-meta-label">⭐ Points Earned</span>
+            <span class="oc-meta-value" style="color:#ff7b00;">+<%= earnedPts %> pts</span>
           </div>
         </div>
-      <% }) %>
-    <% } %>
-  </div>
-</body>
-</html>
 
+        <!-- Footer -->
+        <div class="oc-footer">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="oc-date">
+              🗓 <%= new Date(order.order_time).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
+            </div>
+            <% if (order.coupon_code) { %>
+              <span class="coupon-chip">🎟 <%= order.coupon_code %></span>
+            <% } %>
+          </div>
+
+          <% if (isCancelled) { %>
+            <a class="btn-track-order cancelled">❌ Cancelled</a>
+          <% } else if (isDelivered) { %>
+            <a href="/track-order/<%= order.order_id %>" class="btn-track-order delivered">
+              ✅ View Details
+            </a>
+          <% } else { %>
+            <a href="/track-order/<%= order.order_id %>" class="btn-track-order">
+              🚚 Track Order
+            </a>
+          <% } %>
+        </div>
+
+      </div>
+      <% }) %>
+    </div>
+
+    <!-- No results after filter -->
+    <div id="noFilterResult" style="display:none;" class="empty-state">
+      <div class="es-icon">🔍</div>
+      <h5 class="fw-bold text-muted">No orders in this category</h5>
+    </div>
+
+  <% } %>
+</div>
+
+<script>
+function filterOrders(status, tabEl) {
+  // Update active tab
+  document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
+  tabEl.classList.add("active");
+
+  const cards = document.querySelectorAll(".order-card");
+  let visible = 0;
+
+  cards.forEach(card => {
+    const s = card.dataset.status;
+    const show = status === "all" || s === status;
+    card.style.display = show ? "block" : "none";
+    if (show) visible++;
+  });
+
+  const noResult = document.getElementById("noFilterResult");
+  if (noResult) noResult.style.display = visible === 0 ? "block" : "none";
+}
+</script>

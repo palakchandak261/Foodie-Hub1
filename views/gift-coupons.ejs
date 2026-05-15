@@ -1,103 +1,576 @@
-<div class="text-center mb-5">
-    <br>
-    <br>
-    <br>
-  <h2 class="fw-bold display-6">🎁 Scratch & Win Gift Coupons</h2>
-  <p class="text-muted">Scratch the card to reveal your surprise discount</p>
-</div>
-
-<div class="row g-4 justify-content-center">
-  <% coupons.forEach((c, index) => { %>
-    <div class="col-md-4 col-lg-3">
-      <div class="scratch-card shadow-lg">
-        <div class="coupon-content">
-          <h5 class="fw-bold text-success">🎉 Congratulations!</h5>
-          <p class="fs-4 fw-bold mt-2">
-            <% if (c.discount_type === 'FLAT') { %>
-              ₹<%= c.discount_value %> OFF
-            <% } else { %>
-              <%= c.discount_value %>% OFF
-            <% } %>
-          </p>
-          <small class="text-muted">Use on your next order</small>
-        </div>
-
-        <canvas class="scratch-canvas"
-                width="250"
-                height="160"
-                data-id="<%= c.id %>"></canvas>
-      </div>
-    </div>
-  <% }) %>
-</div>
 <style>
-    .scratch-card {
-  position: relative;
-  width: 250px;
-  height: 160px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #fff8f0, #ffffff);
-  overflow: hidden;
-}
+/* ── Page ── */
+.gc-page { padding-top: 90px; padding-bottom: 80px; }
 
-.coupon-content {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/* ── Hero ── */
+.gc-hero {
+  background: linear-gradient(135deg, #6a2e1b 0%, #ff7b00 55%, #ff5e0e 100%);
+  border-radius: 22px;
+  padding: 36px 32px 30px;
+  color: #fff;
   text-align: center;
-  padding-top: 40px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 36px;
+  box-shadow: 0 10px 36px rgba(255,94,14,0.35);
+}
+.gc-hero::before {
+  content: "🎁";
+  font-size: 160px;
+  position: absolute;
+  right: -20px; top: -30px;
+  opacity: 0.07;
+  pointer-events: none;
+}
+.gc-hero h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem; font-weight: 700;
+  margin-bottom: 6px;
+}
+.gc-hero p { opacity: 0.88; font-size: 0.95rem; margin: 0; }
+
+/* ── Stats row ── */
+.stat-pill {
+  background: rgba(255,255,255,0.93);
+  border-radius: 16px;
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.08);
+}
+.stat-pill .num {
+  font-size: 1.8rem; font-weight: 800;
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.stat-pill .lbl { font-size: 0.72rem; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Section title ── */
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem; font-weight: 700;
+  color: #6a2e1b;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+  content: "";
+  flex: 1; height: 2px;
+  background: linear-gradient(90deg,#ff914d33,transparent);
+  border-radius: 2px;
 }
 
-.scratch-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border-radius: 18px;
+/* ── Scratch card ── */
+.scratch-wrapper {
+  perspective: 800px;
+}
+.scratch-card {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(255,94,14,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
 }
-
-/* Subtle glow */
-.scratch-card:hover {
-  transform: translateY(-4px);
-  transition: 0.3s ease;
+.scratch-card:hover:not(.is-used):not(.is-expired) {
+  transform: translateY(-6px) rotateX(2deg);
+  box-shadow: 0 14px 36px rgba(255,94,14,0.32);
 }
-</style>
-<script>
-document.querySelectorAll(".scratch-canvas").forEach(canvas => {
-  const ctx = canvas.getContext("2d");
-  let scratched = false;
 
-  // Golden scratch layer
-  ctx.fillStyle = "#d4af37";
+/* Coupon inner content */
+.coupon-inner {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  text-align: center;
+}
+.coupon-bg-flat    { background: linear-gradient(135deg, #fff8f0, #ffe8d0); }
+.coupon-bg-percent { background: linear-gradient(135deg, #f0fff4, #d0ffe0); }
+
+.coupon-discount {
+  font-size: 2.2rem; font-weight: 900;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.coupon-bg-flat    .coupon-discount { color: #ff5e0e; }
+.coupon-bg-percent .coupon-discount { color: #2e7d32; }
+
+.coupon-label {
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: #888; margin-bottom: 10px;
+}
+
+.coupon-code-box {
+  background: rgba(0,0,0,0.06);
+  border: 1.5px dashed rgba(0,0,0,0.18);
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 0.85rem; font-weight: 800;
+  letter-spacing: 2px;
+  color: #3e2723;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.coupon-code-box:hover { background: rgba(255,94,14,0.1); }
+
+.coupon-expiry {
+  font-size: 0.65rem; color: #aaa; font-weight: 500;
+}
+.coupon-expiry.expiring-soon { color: #e65100; font-weight: 700; }
+
+/* Scratch overlay canvas */
+.scratch-canvas {
+  position: absolute; inset: 0; z-index: 2;
+  border-radius: 20px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Scratch hint */
+.scratch-hint {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+  color: #fff;
+  gap: 6px;
+}
+.scratch-hint .hint-icon { font-size: 2.2rem; animation: wiggle 1.2s infinite; }
+.scratch-hint .hint-text { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.5px; opacity: 0.9; }
+
+@keyframes wiggle {
+  0%,100% { transform: rotate(-8deg) scale(1); }
+  50%      { transform: rotate(8deg) scale(1.15); }
+}
+
+/* Revealed badge */
+.revealed-badge {
+  position: absolute; top: 10px; right: 10px; z-index: 4;
+  background: linear-gradient(90deg,#ff914d,#ff5e0e);
+  color: #fff; border-radius: 20px;
+  padding: 3px 10px; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.5px;
+  display: none;
+}
+
+/* Used overlay */
+.used-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  background: rgba(0,0,0,0.55);
+  border-radius: 20px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; gap: 6px;
+}
+.used-overlay .uo-icon { font-size: 2.5rem; }
+.used-overlay .uo-text { font-size: 0.85rem; font-weight: 700; }
+
+/* Expired overlay */
+.expired-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  background: rgba(80,80,80,0.6);
+  border-radius: 20px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; gap: 6px;
+}
+.expired-overlay .eo-icon { font-size: 2.5rem; }
+.expired-overlay .eo-text { font-size: 0.85rem; font-weight: 700; }
+
+/* Copy toast */
+#copyToast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: #3e2723; color: #fff;
+  padding: 10px 24px; border-radius: 30px;
+  font-size: 0.82rem; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 9999;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+#copyToast.show { opacity: 1; }
+
+/* How to use card */
+.how-card {
+  background: rgba(255,255,255,0.92);
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.07);
+}
+.how-step {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #f0e8e0;
+}
+.how-step:last-child { border-bottom: none; }
+.how-step .step-num {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#ff914d,#ff5e0e);
+  color: #fff; font-weight: 800; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 8px rgba(255,94,14,0.35);
+}
+.how-step .step-text { font-size: 0.83rem; color: #555; line-height: 1.5; }
+.how-step .step-text strong { color: #3e2723; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 48px 24px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 20px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.07);
+}
+.empty-state .es-icon { font-size: 4rem; margin-bottom: 12px; }
+</style>
+
+<div class="container gc-page" style="max-width:1100px;">
+
+  <!-- Hero -->
+  <div class="gc-hero">
+    <h2>🎁 Scratch & Win Coupons</h2>
+    <p>Scratch your cards to reveal exclusive discounts. Use them at checkout!</p>
+  </div>
+
+  <!-- Stats -->
+  <%
+    const available = coupons.filter(c => c.is_scratched && !c.is_used && new Date(c.expires_at) > new Date()).length;
+    const pending   = coupons.filter(c => !c.is_scratched).length;
+    const used      = coupons.filter(c => c.is_used).length;
+  %>
+  <div class="row g-3 mb-4">
+    <div class="col-4">
+      <div class="stat-pill">
+        <div class="num"><%= pending %></div>
+        <div class="lbl">🎴 Unscratched</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="stat-pill">
+        <div class="num"><%= available %></div>
+        <div class="lbl">✅ Available</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="stat-pill">
+        <div class="num"><%= used %></div>
+        <div class="lbl">🛒 Used</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Left: Coupon cards -->
+    <div class="col-lg-8">
+
+      <% if (coupons.length === 0) { %>
+        <div class="empty-state">
+          <div class="es-icon">🎴</div>
+          <h5 class="fw-bold text-muted">No coupons yet</h5>
+          <p class="text-muted small">Visit this page again to get fresh scratch cards!</p>
+          <a href="/gift-coupons" class="btn btn-sm mt-2">🔄 Refresh</a>
+        </div>
+      <% } else { %>
+
+        <!-- Unscratched -->
+        <% const unscratched = coupons.filter(c => !c.is_scratched); %>
+        <% if (unscratched.length) { %>
+          <div class="section-title">🎴 Scratch to Reveal</div>
+          <div class="row g-3 mb-4">
+            <% unscratched.forEach(c => { %>
+            <div class="col-sm-6 col-md-4 scratch-wrapper">
+              <div class="scratch-card" id="card-<%= c.id %>">
+                <!-- Hidden content (revealed after scratch) -->
+                <div class="coupon-inner <%= c.discount_type === 'FLAT' ? 'coupon-bg-flat' : 'coupon-bg-percent' %>">
+                  <div class="coupon-discount">
+                    <% if (c.discount_type === 'FLAT') { %>₹<%= c.discount_value %><% } else { %><%= c.discount_value %>%<% } %>
+                  </div>
+                  <div class="coupon-label"><%= c.discount_type === 'FLAT' ? 'Flat Off' : 'Percent Off' %></div>
+                  <div class="coupon-code-box" onclick="copyCode('<%= c.code %>', this)">
+                    <%= c.code %>
+                  </div>
+                  <div class="coupon-expiry <%= new Date(c.expires_at) - new Date() < 2*24*60*60*1000 ? 'expiring-soon' : '' %>">
+                    ⏳ Expires: <%= new Date(c.expires_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) %>
+                  </div>
+                </div>
+
+                <!-- Scratch canvas overlay -->
+                <canvas class="scratch-canvas"
+                        width="400" height="200"
+                        data-id="<%= c.id %>"
+                        data-type="<%= c.discount_type %>"
+                        data-value="<%= c.discount_value %>">
+                </canvas>
+
+                <!-- Hint shown on top of canvas -->
+                <div class="scratch-hint" id="hint-<%= c.id %>">
+                  <div class="hint-icon">👆</div>
+                  <div class="hint-text">Scratch Here!</div>
+                </div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <!-- Revealed & available -->
+        <% const revealed = coupons.filter(c => c.is_scratched && !c.is_used && new Date(c.expires_at) > new Date()); %>
+        <% if (revealed.length) { %>
+          <div class="section-title">✅ Ready to Use</div>
+          <div class="row g-3 mb-4">
+            <% revealed.forEach(c => { %>
+            <div class="col-sm-6 col-md-4">
+              <div class="scratch-card">
+                <div class="coupon-inner <%= c.discount_type === 'FLAT' ? 'coupon-bg-flat' : 'coupon-bg-percent' %>">
+                  <div class="coupon-discount">
+                    <% if (c.discount_type === 'FLAT') { %>₹<%= c.discount_value %><% } else { %><%= c.discount_value %>%<% } %>
+                  </div>
+                  <div class="coupon-label"><%= c.discount_type === 'FLAT' ? 'Flat Off' : 'Percent Off' %></div>
+                  <div class="coupon-code-box" onclick="copyCode('<%= c.code %>', this)">
+                    <%= c.code %>
+                  </div>
+                  <div class="coupon-expiry <%= new Date(c.expires_at) - new Date() < 2*24*60*60*1000 ? 'expiring-soon' : '' %>">
+                    ⏳ Expires: <%= new Date(c.expires_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) %>
+                  </div>
+                </div>
+                <div class="revealed-badge" style="display:block;">✨ Revealed</div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <!-- Used -->
+        <% const usedCoupons = coupons.filter(c => c.is_used); %>
+        <% if (usedCoupons.length) { %>
+          <div class="section-title">🛒 Used Coupons</div>
+          <div class="row g-3 mb-4">
+            <% usedCoupons.forEach(c => { %>
+            <div class="col-sm-6 col-md-4">
+              <div class="scratch-card is-used" style="opacity:0.7;">
+                <div class="coupon-inner <%= c.discount_type === 'FLAT' ? 'coupon-bg-flat' : 'coupon-bg-percent' %>">
+                  <div class="coupon-discount">
+                    <% if (c.discount_type === 'FLAT') { %>₹<%= c.discount_value %><% } else { %><%= c.discount_value %>%<% } %>
+                  </div>
+                  <div class="coupon-label"><%= c.code %></div>
+                </div>
+                <div class="used-overlay">
+                  <div class="uo-icon">✅</div>
+                  <div class="uo-text">Already Used</div>
+                </div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <!-- Expired -->
+        <% const expiredCoupons = coupons.filter(c => c.is_scratched && !c.is_used && new Date(c.expires_at) <= new Date()); %>
+        <% if (expiredCoupons.length) { %>
+          <div class="section-title">⌛ Expired</div>
+          <div class="row g-3 mb-4">
+            <% expiredCoupons.forEach(c => { %>
+            <div class="col-sm-6 col-md-4">
+              <div class="scratch-card is-expired" style="opacity:0.6;">
+                <div class="coupon-inner coupon-bg-flat">
+                  <div class="coupon-discount" style="color:#aaa;">
+                    <% if (c.discount_type === 'FLAT') { %>₹<%= c.discount_value %><% } else { %><%= c.discount_value %>%<% } %>
+                  </div>
+                  <div class="coupon-label"><%= c.code %></div>
+                </div>
+                <div class="expired-overlay">
+                  <div class="eo-icon">⌛</div>
+                  <div class="eo-text">Expired</div>
+                </div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+      <% } %>
+
+      <!-- Get more coupons button -->
+      <div class="text-center mt-2">
+        <a href="/gift-coupons" class="btn btn-sm px-4">
+          🔄 Get Fresh Coupons
+        </a>
+      </div>
+    </div>
+
+    <!-- Right: How to use -->
+    <div class="col-lg-4">
+      <div class="how-card mb-4">
+        <div class="section-title" style="font-size:1rem;">📖 How It Works</div>
+        <div class="how-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Scratch</strong> the golden card to reveal your discount code</div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Copy</strong> the code by clicking on it</div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Go to <strong>Checkout</strong> and paste the code in the coupon field</div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Click <strong>Apply</strong> to see your discount instantly</div>
+        </div>
+        <div class="how-step">
+          <div class="step-num">5</div>
+          <div class="step-text">Each coupon can only be used <strong>once</strong> and expires in 7 days</div>
+        </div>
+      </div>
+
+      <!-- Static codes info -->
+      <div class="how-card">
+        <div class="section-title" style="font-size:1rem;">🏷️ Other Codes</div>
+        <div class="how-step">
+          <div class="step-num" style="background:linear-gradient(135deg,#43a047,#2e7d32);">%</div>
+          <div class="step-text">
+            <strong>SAVE5</strong> — 5% off on any order<br>
+            <span style="font-size:0.72rem; color:#aaa;">Always valid</span>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-num" style="background:linear-gradient(135deg,#1565c0,#0d47a1);">🎉</div>
+          <div class="step-text">
+            <strong>FIRST10</strong> — 10% off on your first order<br>
+            <span style="font-size:0.72rem; color:#aaa;">New users only</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Copy toast -->
+<div id="copyToast">✅ Code copied to clipboard!</div>
+
+<!-- ── Scripts ── -->
+<script>
+// ── Copy code to clipboard ────────────────────────────────────────────────
+function copyCode(code, el) {
+  navigator.clipboard.writeText(code).then(() => {
+    const toast = document.getElementById("copyToast");
+    toast.textContent = "✅ " + code + " copied!";
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2200);
+    if (el) {
+      el.textContent = "✅ Copied!";
+      setTimeout(() => el.textContent = code, 2000);
+    }
+  });
+}
+
+// ── Scratch card logic ────────────────────────────────────────────────────
+document.querySelectorAll(".scratch-canvas").forEach(canvas => {
+  const ctx     = canvas.getContext("2d");
+  const couponId = canvas.dataset.id;
+  const hintEl   = document.getElementById("hint-" + couponId);
+  let isDrawing  = false;
+  let revealed   = false;
+  let totalPixels = canvas.width * canvas.height;
+
+  // Draw golden scratch layer with texture
+  const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  grad.addColorStop(0,   "#f5c518");
+  grad.addColorStop(0.3, "#e6a800");
+  grad.addColorStop(0.6, "#f5c518");
+  grad.addColorStop(1,   "#c8960c");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Decorative pattern on scratch layer
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  for (let i = 0; i < canvas.width; i += 20) {
+    for (let j = 0; j < canvas.height; j += 20) {
+      ctx.beginPath();
+      ctx.arc(i, j, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // "SCRATCH ME" text
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.font = "bold 18px Poppins, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("✨ SCRATCH ME ✨", canvas.width / 2, canvas.height / 2);
+
   ctx.globalCompositeOperation = "destination-out";
 
-  const scratch = (x, y) => {
-    ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
-    ctx.fill();
-  };
-
-  const getXY = e => {
+  const getPos = (e) => {
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches ? e.touches[0] : e;
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
     return {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top
+      x: (src.clientX - rect.left) * scaleX,
+      y: (src.clientY - rect.top)  * scaleY
     };
   };
 
-  const scratchHandler = e => {
-    if (scratched) return;
-    const { x, y } = getXY(e);
-    scratch(x, y);
+  const scratchAt = (x, y) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    checkReveal();
   };
 
-  canvas.addEventListener("mousemove", scratchHandler);
-  canvas.addEventListener("touchmove", scratchHandler);
+  const checkReveal = () => {
+    if (revealed) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let cleared = 0;
+    for (let i = 3; i < imageData.data.length; i += 4) {
+      if (imageData.data[i] === 0) cleared++;
+    }
+    const pct = cleared / (totalPixels);
+    if (pct > 0.45) {
+      revealed = true;
+      // Fully clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.pointerEvents = "none";
+      if (hintEl) hintEl.style.display = "none";
 
-  canvas.addEventListener("mouseleave", () => scratched = true);
-  canvas.addEventListener("touchend", () => scratched = true);
+      // Show revealed badge
+      const badge = canvas.closest(".scratch-card").querySelector(".revealed-badge");
+      if (badge) { badge.style.display = "block"; }
+
+      // Notify server
+      fetch("/gift-coupons/scratch/" + couponId, { method: "POST" })
+        .then(r => r.json())
+        .then(data => {
+          if (data.code) {
+            // Show copy toast
+            const toast = document.getElementById("copyToast");
+            toast.textContent = "🎉 You got " + (data.discount_type === "FLAT" ? "₹" + data.discount_value : data.discount_value + "%") + " OFF! Code: " + data.code;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 4000);
+          }
+        });
+    }
+  };
+
+  // Mouse events
+  canvas.addEventListener("mousedown", (e) => { isDrawing = true; scratchAt(...Object.values(getPos(e))); });
+  canvas.addEventListener("mousemove", (e) => { if (isDrawing) scratchAt(...Object.values(getPos(e))); });
+  canvas.addEventListener("mouseup",   () => isDrawing = false);
+  canvas.addEventListener("mouseleave",() => isDrawing = false);
+
+  // Touch events
+  canvas.addEventListener("touchstart", (e) => { e.preventDefault(); isDrawing = true; scratchAt(...Object.values(getPos(e))); }, { passive: false });
+  canvas.addEventListener("touchmove",  (e) => { e.preventDefault(); if (isDrawing) scratchAt(...Object.values(getPos(e))); }, { passive: false });
+  canvas.addEventListener("touchend",   () => isDrawing = false);
+
+  // Hide hint on first touch
+  canvas.addEventListener("mousedown", () => { if (hintEl) hintEl.style.opacity = "0"; });
+  canvas.addEventListener("touchstart", () => { if (hintEl) hintEl.style.opacity = "0"; });
 });
 </script>
-

@@ -9,45 +9,59 @@ const expressLayouts = require("express-ejs-layouts");
 
 const app = express();
 
-/* ---------- DB (FOR APP QUERIES ONLY) ---------- */
-const db = mysql.createPool(process.env.DATABASE_URL);
-
-/* ---------- SESSION MIDDLEWARE ---------- */
-app.set("trust proxy", 1);
+// =============================
+// Middleware Setup
+// =============================
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(flash());
 
 app.use(
   session({
-    name: "foodiehub.sid",
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true,        // REQUIRED on Render
-      maxAge: 1000 * 60 * 60 * 24,
-    },
+    saveUninitialized: true,
   })
 );
 
-/* ---------- FLASH & SESSION TO VIEWS ---------- */
-app.use(flash());
-
+// expose session & flash to views
 app.use((req, res, next) => {
   res.locals.session = req.session;
+  res.locals.title = "Food Ordering System";
   res.locals.message = req.flash("error");
+  res.locals.googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || "";
+  res.locals.mapboxApiKey = process.env.MAPBOX_API_KEY || "";
+  // reward defaults so EJS never throws ReferenceError
+  res.locals.rewardPoints   = 0;
+  res.locals.rewardProgress = 0;
+  res.locals.rewardPct      = 0;
+  res.locals.bonusAvailable = false;
+  res.locals.isFirstOrder   = false;
   next();
 });
 
-/* ---------- VIEWS ---------- */
 app.use(expressLayouts);
 app.set("layout", "layout");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-/* ---------- STATIC ---------- */
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
+// =============================
+// Database Connection
+// =============================
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: { rejectUnauthorized: false } // VERY IMPORTANT for Render
+});
+
+console.log("✅ MySQL pool created");
 
 // =============================
 // Auth Helpers
@@ -72,7 +86,6 @@ function computeCouponDiscount(total, couponCode, isFirstOrder) {
   const code = (couponCode || "").toString().trim().toUpperCase();
 
   if (code === "SAVE5") {
-    // 5% off
     discount = total * 0.05;
     couponApplied = "SAVE5";
   } else if (code === "FIRST10" && isFirstOrder) {
@@ -86,7 +99,6 @@ function computeCouponDiscount(total, couponCode, isFirstOrder) {
     couponApplied = "FIRST10 (Auto Applied)";
   }
 
-  // bounds & rounding
   discount = Math.min(discount, total);
   discount = Number(discount.toFixed(2));
 
@@ -101,33 +113,102 @@ function computeCouponDiscount(total, couponCode, isFirstOrder) {
 // =============================
 app.get("/gift-coupons", requireLogin, async (req, res) => {
   const userId = req.session.user.user_id;
+  try {
+    // Auto-generate 3 unscratched coupons if user has none pending
+    const [pending] = await db.query(
+      "SELECT COUNT(*) AS cnt FROM gift_coupons WHERE user_id = ? AND is_scratched = 0",
+      [userId]
+    );
+    if (pending[0].cnt === 0) {
+      const pool = [
+        { code: null, discount_type: "FLAT",    discount_value: 50  },
+        { code: null, discount_type: "FLAT",    discount_value: 100 },
+        { code: null, discount_type: "PERCENT", discount_value: 10  },
+        { code: null, discount_type: "PERCENT", discount_value: 15  },
+        { code: null, discount_type: "FLAT",    discount_value: 75  },
+      ];
+      // Pick 3 random
+      const picks = pool.sort(() => 0.5 - Math.random()).slice(0, 3);
+      for (const p of picks) {
+        const uniqueCode = "GIFT" + Math.random().toString(36).substring(2, 7).toUpperCase();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        await db.query(
+          `INSERT INTO gift_coupons (user_id, code, discount_type, discount_value, is_scratched, is_used, expires_at)
+           VALUES (?, ?, ?, ?, 0, 0, ?)`,
+          [userId, uniqueCode, p.discount_type, p.discount_value, expiresAt]
+        );
+      }
+    }
 
-  const [coupons] = await db.query(
-    "SELECT * FROM gift_coupons WHERE user_id = ? ORDER BY created_at DESC",
-    [userId]
-  );
-
-  res.render("gift-coupons", { coupons });
+    const [coupons] = await db.query(
+      "SELECT * FROM gift_coupons WHERE user_id = ? ORDER BY created_at DESC",
+      [userId]
+    );
+    res.render("gift-coupons", { coupons });
+  } catch (err) {
+    console.error("Gift coupons error:", err);
+    res.status(500).render("error", { message: "Failed to load gift coupons" });
+  }
 });
 
-app.post("/gift-coupons/scratch", requireLogin, async (req, res) => {
+// Scratch a coupon — reveal it
+app.post("/gift-coupons/scratch/:id", requireLogin, async (req, res) => {
   const userId = req.session.user.user_id;
+  const couponId = req.params.id;
+  try {
+    const [[coupon]] = await db.query(
+      "SELECT * FROM gift_coupons WHERE id = ? AND user_id = ?",
+      [couponId, userId]
+    );
+    if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+    if (coupon.is_scratched) return res.json({ already: true, code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
 
-  const rewards = [
-    { code: "GIFT50", discount: 50 },
-    { code: "GIFT100", discount: 100 },
-    { code: "SAVE5", discount: 0 }
-  ];
+    await db.query("UPDATE gift_coupons SET is_scratched = 1 WHERE id = ?", [couponId]);
+    res.json({ code: coupon.code, discount_type: coupon.discount_type, discount_value: coupon.discount_value });
+  } catch (err) {
+    console.error("Scratch error:", err);
+    res.status(500).json({ error: "Failed to scratch coupon" });
+  }
+});
 
-  const reward = rewards[Math.floor(Math.random() * rewards.length)];
+// Validate coupon code (AJAX from checkout)
+app.post("/api/validate-coupon", requireLogin, async (req, res) => {
+  const userId = req.session.user.user_id;
+  const code = (req.body.code || "").trim().toUpperCase();
+  const cartTotal = parseFloat(req.body.total) || 0;
+  try {
+    // Check gift coupon
+    const [[gift]] = await db.query(
+      `SELECT * FROM gift_coupons 
+       WHERE user_id = ? AND UPPER(code) = ? AND is_scratched = 1 AND is_used = 0
+         AND (expires_at IS NULL OR expires_at > NOW())`,
+      [userId, code]
+    );
+    if (gift) {
+      const disc = gift.discount_type === "FLAT"
+        ? Math.min(gift.discount_value, cartTotal)
+        : Number((cartTotal * gift.discount_value / 100).toFixed(2));
+      return res.json({ valid: true, type: gift.discount_type, value: gift.discount_value, discount: disc, source: "gift" });
+    }
 
-  await db.query(
-    `INSERT INTO gift_coupons (user_id, code, discount, is_scratched)
-     VALUES (?, ?, ?, 1)`,
-    [userId, reward.code, reward.discount]
-  );
+    // Check static codes
+    const [[prev]] = await db.query("SELECT COUNT(*) AS cnt FROM orders WHERE user_id = ?", [userId]);
+    const isFirstOrder = prev.cnt === 0;
 
-  res.json(reward);
+    if (code === "SAVE5") {
+      const disc = Number((cartTotal * 0.05).toFixed(2));
+      return res.json({ valid: true, type: "PERCENT", value: 5, discount: disc, source: "static" });
+    }
+    if (code === "FIRST10" && isFirstOrder) {
+      const disc = Number((cartTotal * 0.10).toFixed(2));
+      return res.json({ valid: true, type: "PERCENT", value: 10, discount: disc, source: "static" });
+    }
+
+    return res.json({ valid: false, message: "Invalid or expired coupon code" });
+  } catch (err) {
+    console.error("Validate coupon error:", err);
+    res.status(500).json({ valid: false, message: "Server error" });
+  }
 });
 
 app.get("/", (req, res) => res.redirect("/restaurants"));
@@ -343,8 +424,11 @@ app.get("/checkout", requireLogin, async (req, res) => {
       [req.session.user.user_id]
     );
 
-    const rewardPoints = Number(user.rewards || 0);
+    const rewardPoints   = Number(user.rewards || 0);
     const bonusAvailable = user.bonus_eligible === 1 && user.bonus_used === 0;
+    // Progress toward next ₹50 reward (resets every 1000 pts)
+    const rewardProgress = rewardPoints % 1000;
+    const rewardPct      = Math.min(Math.round((rewardProgress / 1000) * 100), 100);
 
     // first order check
     const [[o]] = await db.query(
@@ -368,6 +452,8 @@ app.get("/checkout", requireLogin, async (req, res) => {
       cartItems,
       totalAmount: totalAmount.toFixed(2),
       rewardPoints,
+      rewardProgress,
+      rewardPct,
       bonusAvailable,
       showQR: req.query.qr === "1",
       discount: discount.toFixed(2),
@@ -427,25 +513,10 @@ app.post("/checkout", requireLogin, async (req, res) => {
 
     originalTotal = Number(originalTotal.toFixed(2));
     if (originalTotal < 100) {
-  return res.render("error", {
-    message: "Minimum order amount should be ₹100 to place an order."
-  });
-}
-
-    const [[gift]] = await db.query(
-  "SELECT * FROM gift_coupons WHERE user_id = ? AND is_used = 0 LIMIT 1",
-  [userId]
-);
-
-let giftDiscount = 0;
-
- if (gift) {
-  giftDiscount = gift.discount;
-  await db.query(
-    "UPDATE gift_coupons SET is_used = 1 WHERE id = ?",
-    [gift.id]
-  );
-}
+      return res.render("error", {
+        message: "Minimum order amount should be ₹100 to place an order."
+      });
+    }
 
     // -----------------------------
     // First order check
@@ -456,11 +527,43 @@ let giftDiscount = 0;
     );
     const isFirstOrder = prev.cnt === 0;
 
-    const { discount, couponApplied } =
-      computeCouponDiscount(originalTotal, couponCode, isFirstOrder);
+    // -----------------------------
+    // Coupon discount (gift coupon by code OR static codes)
+    // -----------------------------
+    let giftDiscount = 0;
+    let giftCouponId = null;
+    let couponApplied = null;
+    let discount = 0;
+
+    if (couponCode) {
+      // Try gift coupon first
+      const [[gift]] = await db.query(
+        `SELECT * FROM gift_coupons
+         WHERE user_id = ? AND UPPER(code) = ? AND is_scratched = 1 AND is_used = 0
+           AND (expires_at IS NULL OR expires_at > NOW())`,
+        [userId, couponCode]
+      );
+      if (gift) {
+        giftDiscount = gift.discount_type === "FLAT"
+          ? Math.min(gift.discount_value, originalTotal)
+          : Number((originalTotal * gift.discount_value / 100).toFixed(2));
+        giftCouponId = gift.id;
+        couponApplied = gift.code;
+      } else {
+        // Static codes
+        const result = computeCouponDiscount(originalTotal, couponCode, isFirstOrder);
+        discount = result.discount;
+        couponApplied = result.couponApplied;
+      }
+    } else if (isFirstOrder) {
+      // Auto-apply first order discount
+      const result = computeCouponDiscount(originalTotal, "", isFirstOrder);
+      discount = result.discount;
+      couponApplied = result.couponApplied;
+    }
 
     // -----------------------------
-    // Bonus logic (₹100 for 1000 points)
+    // Bonus logic (₹50 for every 1000 points)
     // -----------------------------
     let bonusDiscount = 0;
 
@@ -470,7 +573,7 @@ let giftDiscount = 0;
     );
 
     if (user.bonus_eligible && !user.bonus_used) {
-      bonusDiscount = 100;
+      bonusDiscount = 50;
     }
 
     // -----------------------------
@@ -480,28 +583,28 @@ let giftDiscount = 0;
     if (finalAmount < 0) finalAmount = 0;
     finalAmount = Number(finalAmount.toFixed(2));
 
-    const earnedPoints = Math.floor(finalAmount);
+    // Earned points = order total (before discounts, so users aren't penalised)
+    const earnedPoints = Math.floor(originalTotal);
 
     // -----------------------------
     // Update rewards
     // -----------------------------
-    if (bonusDiscount === 100) {
+    if (bonusDiscount === 50) {
+      // Deduct 1000 pts used for bonus, add newly earned points, reset bonus flags
       await db.query(
         `UPDATE users 
-         SET rewards = rewards - 1000 + ?, bonus_used = 1 
+         SET rewards = rewards - 1000 + ?, bonus_eligible = 0, bonus_used = 0
          WHERE user_id = ?`,
         [earnedPoints, userId]
       );
     } else {
       await db.query(
-        `UPDATE users 
-         SET rewards = rewards + ? 
-         WHERE user_id = ?`,
+        `UPDATE users SET rewards = rewards + ? WHERE user_id = ?`,
         [earnedPoints, userId]
       );
     }
 
-    // Unlock future bonus
+    // Check if user just crossed 1000 pts threshold → unlock bonus for next order
     const [[after]] = await db.query(
       "SELECT rewards, bonus_eligible FROM users WHERE user_id = ?",
       [userId]
@@ -509,7 +612,7 @@ let giftDiscount = 0;
 
     if (after.rewards >= 1000 && !after.bonus_eligible) {
       await db.query(
-        "UPDATE users SET bonus_eligible = 1 WHERE user_id = ?",
+        "UPDATE users SET bonus_eligible = 1, bonus_used = 0 WHERE user_id = ?",
         [userId]
       );
     }
@@ -527,11 +630,16 @@ let giftDiscount = 0;
         finalAmount,
         paymentMethod,
         couponApplied || null,
-        discount + bonusDiscount
+        discount + bonusDiscount + giftDiscount
       ]
     );
 
     const orderId = orderRes.insertId;
+
+    // Mark gift coupon as used after order is created
+    if (giftCouponId) {
+      await db.query("UPDATE gift_coupons SET is_used = 1 WHERE id = ?", [giftCouponId]);
+    }
 
     for (const ci of cart) {
       await db.query(
@@ -558,9 +666,9 @@ let giftDiscount = 0;
       items,
       originalTotal: originalTotal.toFixed(2),
       couponApplied: couponApplied || null,
-      discountAmount: (discount + bonusDiscount).toFixed(2),
-      redeemAmount: "0.00",
-      rewardPointsRedeemed: 0,
+      discountAmount: (discount + bonusDiscount + giftDiscount).toFixed(2),
+      redeemAmount: bonusDiscount > 0 ? bonusDiscount.toFixed(2) : "0.00",
+      rewardPointsRedeemed: bonusDiscount > 0 ? 1000 : 0,
       rewardPointsEarned: earnedPoints,
       totalAmount: finalAmount.toFixed(2),
       paymentMethod
@@ -579,9 +687,16 @@ let giftDiscount = 0;
 app.get("/myOrders", requireLogin, async (req, res) => {
   try {
     const [orders] = await db.query(
-      `SELECT o.*, r.name AS restaurant_name FROM orders o
-       LEFT JOIN restaurants r ON o.restaurant_id = r.restaurant_id
-       WHERE o.user_id = ? ORDER BY o.order_time DESC`,
+      `SELECT o.order_id, o.total_amount, o.payment_method, o.status,
+              o.order_time, o.coupon_code, o.discount,
+              r.name AS restaurant_name,
+              COUNT(oi.order_item_id) AS item_count
+       FROM orders o
+       LEFT JOIN restaurants r  ON o.restaurant_id = r.restaurant_id
+       LEFT JOIN order_items oi ON o.order_id = oi.order_id
+       WHERE o.user_id = ?
+       GROUP BY o.order_id
+       ORDER BY o.order_time DESC`,
       [req.session.user.user_id]
     );
     res.render("myOrders", { orders });
@@ -594,13 +709,18 @@ app.get("/myOrders", requireLogin, async (req, res) => {
 app.get("/track-order/:orderId", requireLogin, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT o.order_id, o.total_amount, o.payment_method, t.status, t.updated_at
-       FROM orders o LEFT JOIN order_tracking t ON o.order_id = t.order_id
+      `SELECT o.order_id, o.total_amount, o.payment_method,
+              o.order_time AS created_at,
+              t.status, t.updated_at,
+              u.address
+       FROM orders o
+       LEFT JOIN order_tracking t ON o.order_id = t.order_id
+       LEFT JOIN users u ON o.user_id = u.user_id
        WHERE o.order_id = ?`,
       [req.params.orderId]
     );
 
-    if (!rows.length) return res.render("track-order", { notFound: true });
+    if (!rows.length) return res.render("track-order", { notFound: true, googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "", mapboxApiKey: process.env.MAPBOX_API_KEY || "" });
 
     const [items] = await db.query(
       `SELECT mi.name, oi.quantity, oi.price_each FROM order_items oi
@@ -608,7 +728,17 @@ app.get("/track-order/:orderId", requireLogin, async (req, res) => {
       [req.params.orderId]
     );
 
-    res.render("track-order", { order: { ...rows[0], items }, notFound: false });
+    const orderData = {
+      ...rows[0],
+      items
+    };
+
+    res.render("track-order", {
+      order: orderData,
+      notFound: false,
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+      mapboxApiKey: process.env.MAPBOX_API_KEY || ""
+    });
   } catch (err) {
     console.error("Track order error:", err);
     res.status(500).render("error", { message: "Failed to load tracking info" });
@@ -651,5 +781,3 @@ app.use((req, res) => res.status(404).render("error", { message: "Page not found
 // start
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
-
-

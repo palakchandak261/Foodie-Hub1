@@ -1,178 +1,665 @@
-<div class="container my-4">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ── Page Styles ─────────────────────────────────────────────────────── -->
+<style>
+  /* ── Hero banner ── */
+  .track-hero {
+    background: linear-gradient(135deg, #6a2e1b 0%, #ff7b00 60%, #ff5e0e 100%);
+    border-radius: 20px;
+    padding: 32px 36px 28px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    box-shadow: 0 8px 32px rgba(255,94,14,0.35);
+  }
+  .track-hero::before {
+    content: "🍕";
+    font-size: 120px;
+    position: absolute;
+    right: -10px;
+    top: -20px;
+    opacity: 0.08;
+    pointer-events: none;
+  }
+  .track-hero .order-id-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 30px;
+    padding: 4px 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    margin-bottom: 8px;
+  }
+  .track-hero h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .track-hero .meta {
+    font-size: 0.82rem;
+    opacity: 0.85;
+  }
+
+  /* ── Info cards row ── */
+  .info-pill {
+    background: rgba(255,255,255,0.92);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    height: 100%;
+  }
+  .info-pill .pill-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .info-pill .pill-label { font-size: 0.7rem; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-pill .pill-value { font-size: 0.92rem; font-weight: 700; color: #3e2723; }
+
+  /* ── Status stepper ── */
+  .stepper-wrap {
+    background: rgba(255,255,255,0.92);
+    border-radius: 18px;
+    padding: 24px 20px 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    margin-bottom: 24px;
+  }
+  .stepper-wrap h6 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #6a2e1b;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .stepper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    padding: 0 8px;
+  }
+  .stepper::before {
+    content: "";
+    position: absolute;
+    top: 18px; left: 8%; right: 8%;
+    height: 4px;
+    background: #e9e0d8;
+    border-radius: 4px;
+    z-index: 0;
+  }
+  .stepper-progress {
+    position: absolute;
+    top: 18px; left: 8%;
+    height: 4px;
+    background: linear-gradient(90deg, #ff914d, #ff5e0e);
+    border-radius: 4px;
+    z-index: 1;
+    transition: width 1s ease;
+  }
+  .step-item {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; z-index: 2; flex: 1;
+  }
+  .step-circle {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: #e9e0d8;
+    border: 3px solid #e9e0d8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: all 0.5s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .step-circle.active {
+    background: linear-gradient(135deg, #ff914d, #ff5e0e);
+    border-color: #ff5e0e;
+    box-shadow: 0 4px 14px rgba(255,94,14,0.45);
+    transform: scale(1.15);
+  }
+  .step-circle.done {
+    background: linear-gradient(135deg, #43a047, #2e7d32);
+    border-color: #2e7d32;
+    box-shadow: 0 4px 12px rgba(46,125,50,0.35);
+  }
+  .step-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #aaa;
+    text-align: center;
+    line-height: 1.3;
+    transition: color 0.4s;
+  }
+  .step-label.active { color: #ff5e0e; }
+  .step-label.done   { color: #2e7d32; }
+
+  /* ── Status text badge ── */
+  #statusBadge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 30px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    background: linear-gradient(90deg, #ff914d, #ff5e0e);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(255,94,14,0.35);
+    transition: all 0.5s ease;
+  }
+
+  /* ── Map card ── */
+  .map-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .map-card-header {
+    padding: 18px 22px 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0e8e0;
+  }
+  .map-card-header h6 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #6a2e1b;
+    margin: 0 0 4px;
+  }
+  #map { width: 100%; height: 400px; }
+  .map-card-footer {
+    padding: 12px 22px;
+    background: #fff;
+    border-top: 1px solid #f0e8e0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .map-legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; color: #666; font-weight: 500;
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  /* ── Order items table ── */
+  .items-card {
+    background: rgba(255,255,255,0.92);
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    margin-bottom: 24px;
+  }
+  .items-card h6 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; font-weight: 700;
+    color: #6a2e1b; margin-bottom: 14px;
+  }
+  .item-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #f0e8e0;
+    font-size: 0.85rem;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-name { color: #3e2723; font-weight: 500; }
+  .item-qty  { color: #999; font-size: 0.78rem; }
+  .item-price { font-weight: 700; color: #ff5e0e; }
+
+  /* ── ETA chip ── */
+  .eta-chip {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border: 1px solid #ffcc80;
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #e65100;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Review section ── */
+  .review-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(255,94,14,0.15);
+    max-width: 520px;
+    margin: 0 auto 100px;
+    text-align: center;
+  }
+  .review-card h4 {
+    font-family: 'Playfair Display', serif;
+    color: #2e7d32; font-size: 1.5rem; margin-bottom: 6px;
+  }
+  .rating-stars {
+    display: inline-flex; flex-direction: row-reverse;
+    justify-content: center; gap: 4px;
+  }
+  .rating-stars input { display: none; }
+  .rating-stars label {
+    font-size: 2.2rem; color: #ddd;
+    cursor: pointer; transition: color .2s, transform .2s;
+  }
+  .rating-stars label:hover,
+  .rating-stars label:hover ~ label { color: #ffb400; transform: scale(1.2); }
+  .rating-stars input:checked ~ label { color: #ff9800; }
+
+  /* ── Pulsing user dot ── */
+  .user-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #4285F4; border: 3px solid #fff;
+    box-shadow: 0 0 0 0 rgba(66,133,244,0.5);
+    animation: locPulse 1.8s infinite;
+  }
+  @keyframes locPulse {
+    0%   { box-shadow: 0 0 0 0   rgba(66,133,244,0.5); }
+    70%  { box-shadow: 0 0 0 12px rgba(66,133,244,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(66,133,244,0);   }
+  }
+  .rider-emoji {
+    font-size: 26px; line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+
+  /* ── Not found ── */
+  .not-found-card {
+    max-width: 460px; margin: 140px auto 0;
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px; padding: 40px 32px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  }
+  .not-found-card .icon { font-size: 3.5rem; margin-bottom: 12px; }
+</style>
+
+<!-- ── Page Content ──────────────────────────────────────────────────────── -->
+<div class="container" style="padding-top: 90px; padding-bottom: 40px; max-width: 1100px;">
+
   <% if (notFound) { %>
-    <div class="text-center p-4 shadow-sm rounded bg-light" style="max-width: 500px; margin: auto; background-color: #ccc; margin-top: 150px;">
-      <h4 class="text-danger fw-bold mb-2">⚠️ Order Not Found!</h4>
-      <p class="text-muted small mb-3">We couldn’t find your order. Please check your order ID or try again later.</p>
-      <a href="/restaurants" class="btn btn-sm btn-primary">🍴 Back to Restaurants</a>
+
+    <div class="not-found-card">
+      <div class="icon">🔍</div>
+      <h4 class="fw-bold text-danger mb-2">Order Not Found</h4>
+      <p class="text-muted small mb-4">We couldn't find this order. Please check your order ID or contact support.</p>
+      <a href="/myOrders" class="btn btn-sm px-4 me-2">My Orders</a>
+      <a href="/restaurants" class="btn btn-sm px-4" style="background:transparent; border:2px solid #ff5e0e; color:#ff5e0e !important; box-shadow:none;">Browse Restaurants</a>
     </div>
+
   <% } else { %>
-    <div class="card shadow-sm p-3 mx-auto mt-3" style="max-width: 480px; border-radius: 14px; margin-top:150px; background-color: #ccc; margin-top: 150px;">
-      <div class="text-center mb-3 " style="margin-top: 100px;">
-        <h5 class="fw-bold text-success mb-1">✅ Order Confirmed!</h5>
-        <p class="text-muted small mb-0">Order ID: <strong>#<%= order.order_id %></strong></p>
-        <p class="text-muted small">Placed on: <%= new Date(order.created_at).toLocaleString() %></p>
-      </div>
 
-      <hr class="my-2">
+    <!-- ── Hero ── -->
+    <div class="track-hero">
+      <div class="order-id-badge">ORDER #<%= order.order_id %></div>
+      <h2>Track Your Order 🚀</h2>
+      <p class="meta">
+        Placed on <%= new Date(order.created_at).toLocaleString('en-IN', { dateStyle:'medium', timeStyle:'short' }) %>
+        &nbsp;·&nbsp;
+        <span class="eta-chip" style="vertical-align:middle;">
+          ⏱ Est. delivery: 30–45 min
+        </span>
+      </p>
+    </div>
 
-      <div class="small">
-        <p class="mb-1"><strong>💰 Total:</strong> ₹<%= Number(order.total_amount- order.total_amount*0.05).toFixed(2) %></p>
-        <p class="mb-1"><strong>💳 Payment:</strong> <%= order.payment_method %></p>
-        <p class="mb-1"><strong>🚚 Address:</strong> <span class="text-muted"><%= order.address || "Not available" %></span></p>
-      </div>
-
-      <!-- 🟢 Order Status Progress -->
-      <div class="mt-3">
-        <h6 class="fw-semibold mb-2 text-center">📦 Order Status</h6>
-        <div class="progress" style="height: 10px; border-radius: 10px;">
-          <% let progress = 0; %>
-          <% if (order.status === 'Confirmed') progress = 25;
-             else if (order.status === 'Preparing') progress = 50;
-             else if (order.status === 'On the Way') progress = 75;
-             else if (order.status === 'Delivered') progress = 100; %>
-          <div id="progress-bar" class="progress-bar bg-success" role="progressbar"
-               style="width: <%= progress %>%;" aria-valuenow="<%= progress %>"
-               aria-valuemin="0" aria-valuemax="100"></div>
+    <!-- ── Info Pills ── -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="info-pill">
+          <div class="pill-icon" style="background:#fff3e0;">💰</div>
+          <div>
+            <div class="pill-label">Total</div>
+            <div class="pill-value">₹<%= Number(order.total_amount - order.total_amount * 0.05).toFixed(2) %></div>
+          </div>
         </div>
-
-        <div class="d-flex justify-content-between mt-1 small text-muted">
-          <span>Confirmed</span>
-          <span>Preparing</span>
-          <span>On Way</span>
-          <span>Delivered</span>
-        </div>
-
-        <p id="statusText" class="mt-2 text-center fw-semibold text-primary small">
-          Status: <%= order.status %> 🚀
-        </p>
       </div>
-
-      <div class="text-center mt-3">
-        <p class="text-muted small mb-2">Last Updated: <%= new Date(order.updated_at).toLocaleString() %></p>
-        <a href="/restaurants" class="btn btn-sm btn-outline-primary px-3 py-1">🍽 Continue Exploring</a>
+      <div class="col-6 col-md-3">
+        <div class="info-pill">
+          <div class="pill-icon" style="background:#e8f5e9;">💳</div>
+          <div>
+            <div class="pill-label">Payment</div>
+            <div class="pill-value"><%= order.payment_method %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="info-pill">
+          <div class="pill-icon" style="background:#e3f2fd;">📦</div>
+          <div>
+            <div class="pill-label">Status</div>
+            <div class="pill-value" id="pillStatus"><%= order.status %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="info-pill">
+          <div class="pill-icon" style="background:#fce4ec;">📍</div>
+          <div>
+            <div class="pill-label">Address</div>
+            <div class="pill-value" style="font-size:0.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;" title="<%= order.address || 'Not available' %>">
+              <%= order.address ? order.address.substring(0,22) + (order.address.length > 22 ? '…' : '') : 'Not available' %>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- ── Main Grid ── -->
+    <div class="row g-4">
+
+      <!-- Left column -->
+      <div class="col-lg-4">
+
+        <!-- Stepper -->
+        <div class="stepper-wrap">
+          <h6>📦 Order Progress</h6>
+          <div class="stepper" id="stepper">
+            <div class="stepper-progress" id="stepperProgress" style="width:0%"></div>
+            <div class="step-item">
+              <div class="step-circle" id="sc0">✅</div>
+              <div class="step-label" id="sl0">Confirmed</div>
+            </div>
+            <div class="step-item">
+              <div class="step-circle" id="sc1">👨‍🍳</div>
+              <div class="step-label" id="sl1">Preparing</div>
+            </div>
+            <div class="step-item">
+              <div class="step-circle" id="sc2">🚚</div>
+              <div class="step-label" id="sl2">On the Way</div>
+            </div>
+            <div class="step-item">
+              <div class="step-circle" id="sc3">🎉</div>
+              <div class="step-label" id="sl3">Delivered</div>
+            </div>
+          </div>
+          <div class="text-center mt-4">
+            <span id="statusBadge">Status: <%= order.status %> 🚀</span>
+          </div>
+          <p class="text-center text-muted mt-2 mb-0" style="font-size:0.72rem;">
+            Last updated: <%= new Date(order.updated_at).toLocaleString('en-IN', { timeStyle:'short', dateStyle:'short' }) %>
+          </p>
+        </div>
+
+        <!-- Order Items -->
+        <% if (order.items && order.items.length) { %>
+        <div class="items-card">
+          <h6>🛒 Order Items</h6>
+          <% order.items.forEach(item => { %>
+          <div class="item-row">
+            <div>
+              <div class="item-name"><%= item.name %></div>
+              <div class="item-qty">Qty: <%= item.quantity %></div>
+            </div>
+            <div class="item-price">₹<%= Number(item.price_each * item.quantity).toFixed(2) %></div>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+
+        <!-- Action buttons -->
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="/myOrders" class="btn btn-sm flex-fill" style="font-size:0.8rem;">
+            📋 My Orders
+          </a>
+          <a href="/restaurants" class="btn btn-sm flex-fill"
+             style="background:transparent; border:2px solid #ff5e0e; color:#ff5e0e !important; box-shadow:none; font-size:0.8rem;">
+            🍽 Explore More
+          </a>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- Right column: Map -->
+      <div class="col-lg-8">
+        <div class="map-card">
+          <div class="map-card-header">
+            <h6>📍 Live Delivery Tracking</h6>
+            <p class="text-muted mb-0" style="font-size:0.78rem;">
+              Real-time map showing your location and delivery rider
+            </p>
+          </div>
+
+          <div id="map"></div>
+
+          <div class="map-card-footer">
+            <div class="map-legend">
+              <div class="legend-item">
+                <div class="legend-dot" style="background:#4285F4;"></div>
+                Your Location
+              </div>
+              <div class="legend-item">
+                <span style="font-size:16px; line-height:1;">🛵</span>
+                Delivery Rider
+              </div>
+              <div class="legend-item">
+                <div style="width:20px; height:3px; background:linear-gradient(90deg,#ff914d,#ff5e0e); border-radius:2px;"></div>
+                Route
+              </div>
+            </div>
+            <span id="locationStatus" class="badge bg-secondary" style="font-size:0.72rem;">
+              📡 Detecting location…
+            </span>
+          </div>
+        </div>
+      </div><!-- /right -->
+
+    </div><!-- /row -->
+
   <% } %>
 </div>
 
-<!-- 🎉 Success + Review Section -->
-<div id="order-success-section" class="container my-5" style="display: none; ">
-  <div class="card p-4 shadow-sm mx-auto" style="max-width: 500px; border-radius: 15px; background-color: #ccc; margin-bottom: 100px;">
-    <div class="text-center mb-3">
-      <h4 class="fw-bold text-success mb-1">🎉 Order Delivered Successfully!</h4>
-      <p class="text-muted small">We hope you enjoyed your meal. Please share your feedback!</p>
-    </div>
-<!-- ⭐ Review Form -->
-<form id="reviewForm">
-  <div class="text-center mb-3">
-    <div class="rating-stars">
-      <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 stars">★</label>
-      <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
-      <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
-      <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
-      <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
-    </div>
-  </div>
-
-  <textarea class="form-control mb-3" rows="3" placeholder="Write your review..." required></textarea>
-  <button type="submit" class="btn btn-primary w-100">Submit Review</button>
-</form>
-
-
-<!-- 🎉 Success + Review Section -->
-<div id="order-success-section" class="container my-5" style="display: none;">
-  <div class="card p-4 shadow-sm mx-auto" style="max-width: 500px; border-radius: 15px;">
-    <div class="text-center mb-3">
-      <h4 class="fw-bold text-success mb-1">🎉 Order Delivered Successfully!</h4>
-      <p class="text-muted small">We hope you enjoyed your meal. Please share your feedback!</p>
-    </div>
-
-    <!-- ⭐ Review Form -->
+<!-- ── Delivered Review Section ── -->
+<div id="order-success-section" style="display:none; padding: 0 16px;">
+  <div class="review-card">
+    <div style="font-size:3rem; margin-bottom:8px;">🎉</div>
+    <h4>Order Delivered!</h4>
+    <p class="text-muted small mb-4">Hope you loved your meal. Share your experience!</p>
     <form id="reviewForm">
-      <div class="text-center mb-3">
+      <div class="mb-3">
         <div class="rating-stars">
-          <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 stars">★</label>
-          <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
-          <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
-          <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
-          <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+          <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+          <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+          <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+          <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+          <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
         </div>
       </div>
-
-      <textarea class="form-control mb-3" rows="3" placeholder="Write your review..." required></textarea>
-      <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+      <textarea class="form-control mb-3" rows="3"
+        placeholder="Tell us about your experience…"
+        style="border-radius:12px; border:1.5px solid #ffcc80; resize:none;"
+        required></textarea>
+      <button type="submit" class="btn w-100">Submit Review ✨</button>
     </form>
   </div>
 </div>
 
-<style>
-/* ⭐ Proper Rating Stars */
-.rating-stars {
-  display: inline-flex;
-  flex-direction: row-reverse;
-  justify-content: center;
-  gap: 3px;
-}
-
-.rating-stars input {
-  display: none; /* Hides radio buttons */
-}
-
-.rating-stars label {
-  font-size: 2rem;
-  color: #ccc;
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.rating-stars label:hover,
-.rating-stars label:hover ~ label {
-  color: #ffb400;
-  transform: scale(1.2);
-}
-
-.rating-stars input:checked ~ label {
-  color: #ff9800;
-}
-
-</style>
-
-
-
+<!-- ── JavaScript ──────────────────────────────────────────────────────── -->
+<% if (!notFound) { %>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const orderStatus = "<%= order.status %>".toLowerCase();
-  const progressBar = document.getElementById("progress-bar");
-  const statusText = document.getElementById("statusText");
-  const successSection = document.getElementById("order-success-section");
+const ORDER_STATUS  = "<%= order.status %>".toLowerCase();
+const DELIVERY_ADDR = "<%= (order.address || '').replace(/\"/g,'').replace(/\n/g,' ') %>";
 
-  if (["placed", "confirmed"].includes(orderStatus)) {
-    let stages = [
-      { width: 25, text: "Status: Confirmed ✅" },
-      { width: 50, text: "Status: Preparing 👨‍🍳" },
-      { width: 75, text: "Status: On the Way 🚚" },
-      { width: 100, text: "Status: Delivered 🎉" }
-    ];
+// ── Stepper config ────────────────────────────────────────────────────────
+const stages = [
+  { pct: 12,  badge: "Status: Confirmed ✅",    stepIdx: 0 },
+  { pct: 45,  badge: "Status: Preparing 👨‍🍳",   stepIdx: 1 },
+  { pct: 78,  badge: "Status: On the Way 🚚",   stepIdx: 2 },
+  { pct: 100, badge: "Status: Delivered 🎉",    stepIdx: 3 }
+];
 
-    let i = 0;
+function applyStage(i) {
+  const s = stages[i];
+  document.getElementById("stepperProgress").style.width = s.pct + "%";
+  document.getElementById("statusBadge").textContent = s.badge;
+  document.getElementById("pillStatus").textContent = s.badge.replace("Status: ","").replace(/ .*/,"");
 
-    const jumpProgress = () => {
-      if (i < stages.length) {
-        progressBar.style.width = stages[i].width + "%";
-        progressBar.setAttribute("aria-valuenow", stages[i].width);
-        statusText.textContent = stages[i].text;
-        i++;
-        setTimeout(jumpProgress, 7500); // every 7.5 seconds
-      } else {
-        // Show success + review form after 30s
-        setTimeout(() => {
-          successSection.style.display = "block";
-          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-        }, 2000);
-      }
-    };
-
-    jumpProgress();
+  for (let k = 0; k < 4; k++) {
+    const circle = document.getElementById("sc" + k);
+    const label  = document.getElementById("sl" + k);
+    if (k < s.stepIdx) {
+      circle.className = "step-circle done";
+      label.className  = "step-label done";
+    } else if (k === s.stepIdx) {
+      circle.className = "step-circle active";
+      label.className  = "step-label active";
+    } else {
+      circle.className = "step-circle";
+      label.className  = "step-label";
+    }
   }
+}
+
+// Set initial stage from server status
+const initMap = {
+  confirmed: 0, placed: 0,
+  preparing: 1,
+  "on the way": 2,
+  delivered: 3
+};
+const initIdx = initMap[ORDER_STATUS] ?? 0;
+applyStage(initIdx);
+
+// Animate through stages if order is new
+if (["placed", "confirmed"].includes(ORDER_STATUS)) {
+  let i = 0;
+  const tick = () => {
+    if (i < stages.length) {
+      applyStage(i); i++;
+      setTimeout(tick, 7500);
+    } else {
+      setTimeout(() => {
+        document.getElementById("order-success-section").style.display = "block";
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      }, 2000);
+    }
+  };
+  tick();
+}
+
+// ── Leaflet Map ───────────────────────────────────────────────────────────
+const userIcon = L.divIcon({
+  className: "",
+  html: '<div class="user-dot"></div>',
+  iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -14]
 });
+
+const riderIcon = L.divIcon({
+  className: "",
+  html: '<div class="rider-emoji">🛵</div>',
+  iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -18]
+});
+
+const map = L.map("map", { zoomControl: true }).setView([20.5937, 78.9629], 5);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+const locationBadge = document.getElementById("locationStatus");
+let userMarker = null, riderMarker = null, routeLine = null;
+
+function startRiderAnimation(destLat, destLng) {
+  const startLat = destLat + 0.011;
+  const startLng = destLng + 0.011;
+
+  riderMarker = L.marker([startLat, startLng], { icon: riderIcon })
+    .addTo(map)
+    .bindPopup("<b>🛵 Your Delivery Rider</b><br><small style='color:#666'>Heading your way!</small>");
+
+  routeLine = L.polyline([[startLat, startLng], [destLat, destLng]], {
+    color: "#ff5e0e", weight: 4, opacity: 0.8, dashArray: "10, 7"
+  }).addTo(map);
+
+  map.fitBounds([[startLat, startLng], [destLat, destLng]], { padding: [50, 50] });
+
+  const STEPS = 300;
+  let step = 0;
+  const dLat = (destLat - startLat) / STEPS;
+  const dLng = (destLng - startLng) / STEPS;
+
+  const iv = setInterval(() => {
+    if (step >= STEPS) {
+      clearInterval(iv);
+      riderMarker.setLatLng([destLat, destLng]);
+      routeLine.setLatLngs([[destLat, destLng], [destLat, destLng]]);
+      riderMarker.setPopupContent("<b>🛵 Rider Arrived!</b>").openPopup();
+      return;
+    }
+    step++;
+    const cLat = startLat + dLat * step;
+    const cLng = startLng + dLng * step;
+    riderMarker.setLatLng([cLat, cLng]);
+    routeLine.setLatLngs([[cLat, cLng], [destLat, destLng]]);
+  }, 100);
+}
+
+function placeUserAndRider(lat, lng, label) {
+  map.setView([lat, lng], 15);
+  userMarker = L.marker([lat, lng], { icon: userIcon })
+    .addTo(map)
+    .bindPopup("<b>" + label + "</b>")
+    .openPopup();
+  startRiderAnimation(lat, lng);
+}
+
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      placeUserAndRider(pos.coords.latitude, pos.coords.longitude, "📍 Your Location");
+      locationBadge.className = "badge bg-success";
+      locationBadge.textContent = "📍 Live location active";
+
+      navigator.geolocation.watchPosition((p) => {
+        if (userMarker) userMarker.setLatLng([p.coords.latitude, p.coords.longitude]);
+      }, null, { enableHighAccuracy: true });
+    },
+    () => {
+      locationBadge.className = "badge bg-warning text-dark";
+      locationBadge.textContent = "⚠️ GPS denied – using address";
+
+      if (DELIVERY_ADDR) {
+        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
+          + encodeURIComponent(DELIVERY_ADDR))
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.length) {
+              placeUserAndRider(parseFloat(data[0].lat), parseFloat(data[0].lon), "📍 Delivery Address");
+              locationBadge.className = "badge bg-info text-dark";
+              locationBadge.textContent = "📍 Showing delivery address";
+            } else {
+              locationBadge.className = "badge bg-danger";
+              locationBadge.textContent = "❌ Location unavailable";
+            }
+          });
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+} else {
+  locationBadge.className = "badge bg-danger";
+  locationBadge.textContent = "❌ Geolocation not supported";
+}
 </script>
+<% } %>

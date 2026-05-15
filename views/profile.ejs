@@ -116,6 +116,29 @@
           <span class="fw-semibold text-secondary"><i class="bi bi-stars text-warning"></i> Rewards:</span>
           <span class="text-success fw-bold"><%= user.rewards %> pts</span>
         </div>
+
+        <!-- Reward Progress Bar -->
+        <%
+          const rPts      = Number(user.rewards || 0);
+          const rProgress = rPts % 1000;
+          const rPct      = Math.min(Math.round((rProgress / 1000) * 100), 100);
+          const rNeeded   = 1000 - rProgress;
+          const bonusReady = user.bonus_eligible && !user.bonus_used;
+        %>
+        <div style="padding: 0 10px; margin-top: 10px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <small class="text-muted fw-semibold">⭐ Reward Progress</small>
+            <small style="color:#ff5e0e; font-weight:700;"><%= rProgress %> / 1000</small>
+          </div>
+          <div style="background:#f0e0d0; border-radius:10px; height:10px; overflow:hidden;">
+            <div style="width:<%= rPct %>%; height:100%; background:linear-gradient(90deg,#ff914d,#ff5e0e); border-radius:10px;"></div>
+          </div>
+          <% if (bonusReady) { %>
+            <small style="color:#2e7d32; font-weight:700; display:block; margin-top:5px;">🎉 ₹50 OFF unlocked! Use it at checkout.</small>
+          <% } else { %>
+            <small class="text-muted" style="display:block; margin-top:5px;"><%= rNeeded %> more points to unlock ₹50 OFF</small>
+          <% } %>
+        </div>
       </div>
 
       <!-- Buttons -->
