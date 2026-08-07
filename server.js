@@ -6,8 +6,20 @@ const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
 
 const app = express();
+
+// =============================
+// Razorpay Instance
+// =============================
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_xxxxxxxxxxxxxx",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "xxxxxxxxxxxxxxxxxxxxxx"
+});
+
+console.log("✅ Razorpay initialized");
 
 // =============================
 // Middleware Setup
@@ -31,6 +43,7 @@ app.use((req, res, next) => {
   res.locals.message = req.flash("error");
   res.locals.googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || "";
   res.locals.mapboxApiKey = process.env.MAPBOX_API_KEY || "";
+  res.locals.razorpayKeyId = process.env.RAZORPAY_KEY_ID || "rzp_test_xxxxxxxxxxxxxx";
   // reward defaults so EJS never throws ReferenceError
   res.locals.rewardPoints   = 0;
   res.locals.rewardProgress = 0;
@@ -470,11 +483,143 @@ app.get("/checkout", requireLogin, async (req, res) => {
 
 
 // =============================
+// RAZORPAY PAYMENT INTEGRATION
+// =============================
+
+// Health-check: verify Razorpay keys are working
+app.get("/api/check-razorpay", requireLogin, async (req, res) => {
+  try {
+    await razorpay.orders.create({ amount: 100, currency: "INR", receipt: "health_check" });
+    res.json({ ok: true });
+  } catch (err) {
+    res.json({ ok: false, reason: err?.error?.description || "Authentication failed" });
+  }
+});
+
+// Create Razorpay order
+app.post("/api/create-razorpay-order", requireLogin, async (req, res) => {
+  try {
+    const { amount, currency = "INR" } = req.body;
+    
+    if (!amount || amount < 1) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    const options = {
+      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      currency,
+      receipt: `order_${Date.now()}_${req.session.user.user_id}`,
+      notes: {
+        user_id: req.session.user.user_id,
+        user_email: req.session.user.email
+      }
+    };
+
+    const order = await razorpay.orders.create(options);
+    
+    res.json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (err) {
+    console.error("Razorpay order creation error:", err);
+    res.status(500).json({ error: "Failed to create payment order" });
+  }
+});
+
+// Verify Razorpay payment signature
+app.post("/api/verify-razorpay-payment", requireLogin, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    // Verify signature
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSign = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(sign.toString())
+      .digest("hex");
+
+    if (razorpay_signature === expectedSign) {
+      // Payment verified successfully
+      res.json({
+        success: true,
+        message: "Payment verified successfully",
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Invalid payment signature"
+      });
+    }
+  } catch (err) {
+    console.error("Payment verification error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Payment verification failed"
+    });
+  }
+});
+
+// Razorpay webhook handler
+app.post("/razorpay-webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const signature = req.headers["x-razorpay-signature"];
+
+    if (webhookSecret) {
+      const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(JSON.stringify(req.body))
+        .digest("hex");
+
+      if (signature !== expectedSignature) {
+        return res.status(400).json({ error: "Invalid webhook signature" });
+      }
+    }
+
+    const event = req.body.event;
+    const payload = req.body.payload.payment.entity;
+
+    console.log("Razorpay webhook event:", event);
+
+    // Handle different events
+    switch (event) {
+      case "payment.captured":
+        // Payment successful
+        console.log("Payment captured:", payload.id);
+        // Update order status in database
+        break;
+
+      case "payment.failed":
+        // Payment failed
+        console.log("Payment failed:", payload.id);
+        // Handle failed payment
+        break;
+
+      default:
+        console.log("Unhandled webhook event:", event);
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
+});
+
+// =============================
 // CHECKOUT (POST)
 // =============================
 app.post("/checkout", requireLogin, async (req, res) => {
   try {
     const paymentMethod = String(req.body.paymentMethod || "COD");
+    const razorpayPaymentId = req.body.razorpay_payment_id || null;
+    const razorpayOrderId = req.body.razorpay_order_id || null;
 
     if (paymentMethod === "QR") {
       return res.redirect("/checkout?qr=1");
@@ -623,15 +768,17 @@ app.post("/checkout", requireLogin, async (req, res) => {
     // -----------------------------
     const [orderRes] = await db.query(
       `INSERT INTO orders 
-       (user_id, restaurant_id, total_amount, payment_method, coupon_code, discount)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       (user_id, restaurant_id, total_amount, payment_method, coupon_code, discount, razorpay_payment_id, razorpay_order_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         cart[0].restaurantId || null,
         finalAmount,
         paymentMethod,
         couponApplied || null,
-        discount + bonusDiscount + giftDiscount
+        discount + bonusDiscount + giftDiscount,
+        razorpayPaymentId,
+        razorpayOrderId
       ]
     );
 

@@ -1,3 +1,6 @@
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <style>
 .checkout-page { padding-top: 90px; padding-bottom: 80px; }
 
@@ -138,6 +141,30 @@
 }
 .qr-area img { max-width: 140px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
+/* ── Razorpay badge ── */
+.razorpay-badge {
+  background: linear-gradient(135deg, #1b66c9, #0f4fa6);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: #fff;
+  font-weight: 500;
+  display: none;
+}
+.razorpay-badge.active { display: block; }
+.razorpay-badge .method-icons {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-top: 8px;
+}
+.method-icons span {
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 /* ── Submit button ── */
 .btn-confirm {
   width: 100%; padding: 14px;
@@ -217,6 +244,15 @@
             </div>
           </label>
 
+          <label class="payment-option" id="opt-RAZORPAY">
+            <input type="radio" name="paymentMethod" value="RAZORPAY" onchange="selectPayment('RAZORPAY')">
+            <span style="font-size:1.4rem;">💳</span>
+            <div>
+              <div>Card / UPI / Netbanking</div>
+              <div style="font-size:0.72rem; color:#aaa; font-weight:400;">Pay securely via Razorpay</div>
+            </div>
+          </label>
+
           <label class="payment-option" id="opt-UPI">
             <input type="radio" name="paymentMethod" value="UPI" onchange="selectPayment('UPI')">
             <span style="font-size:1.4rem;">📱</span>
@@ -241,6 +277,21 @@
             <img src="/images/scanner.png" alt="QR Code" />
             <p class="text-muted small mt-3 mb-3">After payment, click the button below</p>
             <button type="button" id="confirmPaymentBtn" class="btn btn-sm px-4">✅ Confirm Payment</button>
+          </div>
+
+          <!-- Razorpay info badge -->
+          <div class="razorpay-badge" id="razorpayBadge">
+            🔒 <strong>100% Secure Payment</strong> powered by Razorpay
+            <div class="method-icons">
+              <span>💳 Cards</span>
+              <span>📱 UPI</span>
+              <span>🏦 NetBanking</span>
+              <span>💰 Wallets</span>
+              <span>📅 EMI</span>
+            </div>
+            <div style="font-size:0.7rem; opacity:0.8; margin-top:6px;">
+              Same gateway used by Swiggy, Zomato &amp; Amazon Pay
+            </div>
           </div>
         </div>
 
@@ -371,11 +422,13 @@ let   appliedDiscount = 0;
 
 // ── Payment option UI ─────────────────────────────────────────────────────
 function selectPayment(val) {
-  ["COD","UPI","QR"].forEach(v => {
+  ["COD","RAZORPAY","UPI","QR"].forEach(v => {
     const el = document.getElementById("opt-" + v);
     if (el) el.classList.toggle("selected", v === val);
   });
   document.getElementById("qrArea").style.display = val === "QR" ? "block" : "none";
+  const razBadge = document.getElementById("razorpayBadge");
+  if (razBadge) razBadge.classList.toggle("active", val === "RAZORPAY");
 }
 // Set initial selected state
 selectPayment("COD");
@@ -490,14 +543,143 @@ if (confirmPaymentBtn) {
 }
 
 // ── Form submit guard ─────────────────────────────────────────────────────
-document.getElementById("checkoutForm").addEventListener("submit", (e) => {
+document.getElementById("checkoutForm").addEventListener("submit", async (e) => {
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+  
   if (method === "QR") {
     e.preventDefault();
     document.getElementById("qrArea").style.display = "block";
     document.getElementById("qrArea").scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  
+  if (method === "RAZORPAY") {
+    e.preventDefault();
+    await initiateRazorpayPayment();
+    return;
   }
 });
+
+// ── Razorpay Payment Handler ──────────────────────────────────────────────
+async function initiateRazorpayPayment() {
+  const confirmBtn = document.getElementById("confirmBtn");
+  const originalText = confirmBtn.textContent;
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "⏳ Processing...";
+
+  // Clear any old error
+  const errDiv = document.getElementById("rzp-error");
+  if (errDiv) errDiv.style.display = "none";
+
+  try {
+    const total = Math.max(0, SUBTOTAL - appliedDiscount - BONUS);
+
+    const orderRes = await fetch("/api/create-razorpay-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total, currency: "INR" })
+    });
+
+    const orderData = await orderRes.json();
+
+    if (!orderData.success) {
+      showRzpError("Payment service unavailable. Please use Cash on Delivery.");
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalText;
+      return;
+    }
+
+    const options = {
+      key: orderData.key,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: "Foodie Hub",
+      description: "Food Order Payment",
+      image: "/images/logo.jpg",
+      order_id: orderData.orderId,
+      handler: async function (response) {
+        confirmBtn.textContent = "⏳ Verifying payment...";
+        const verifyRes = await fetch("/api/verify-razorpay-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          })
+        });
+
+        const verifyData = await verifyRes.json();
+
+        if (verifyData.success) {
+          const form = document.getElementById("checkoutForm");
+
+          const paymentIdInput = document.createElement("input");
+          paymentIdInput.type = "hidden";
+          paymentIdInput.name = "razorpay_payment_id";
+          paymentIdInput.value = response.razorpay_payment_id;
+          form.appendChild(paymentIdInput);
+
+          const orderIdInput = document.createElement("input");
+          orderIdInput.type = "hidden";
+          orderIdInput.name = "razorpay_order_id";
+          orderIdInput.value = response.razorpay_order_id;
+          form.appendChild(orderIdInput);
+
+          form.submit();
+        } else {
+          showRzpError("Payment verification failed. Please try again.");
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+        }
+      },
+      prefill: {
+        name: "<%= session.user ? session.user.name : '' %>",
+        email: "<%= session.user ? session.user.email : '' %>",
+        contact: "<%= session.user ? session.user.phone || '' : '' %>"
+      },
+      notes: {
+        address: document.getElementById("address").value
+      },
+      theme: { color: "#ff5e0e" },
+      modal: {
+        ondismiss: function () {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+
+    rzp.on("payment.failed", function (response) {
+      showRzpError("Payment failed: " + (response.error.description || "Please try again."));
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalText;
+    });
+
+    rzp.open();
+
+  } catch (err) {
+    console.error("Payment error:", err);
+    showRzpError("Failed to initiate payment. Please try again or use Cash on Delivery.");
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalText;
+  }
+}
+
+function showRzpError(msg) {
+  let errDiv = document.getElementById("rzp-error");
+  if (!errDiv) {
+    errDiv = document.createElement("div");
+    errDiv.id = "rzp-error";
+    errDiv.style.cssText = "background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:12px 16px;font-size:0.83rem;color:#c62828;font-weight:600;margin-top:10px;";
+    document.getElementById("razorpayBadge").after(errDiv);
+  }
+  errDiv.textContent = "❌ " + msg;
+  errDiv.style.display = "block";
+  errDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
 // ── Enter key on coupon input ─────────────────────────────────────────────
 document.getElementById("couponInput").addEventListener("keydown", (e) => {

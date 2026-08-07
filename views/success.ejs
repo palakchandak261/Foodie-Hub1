@@ -146,7 +146,13 @@
 
     <p>Your Order ID: <strong>#<%= orderId %></strong></p>
     <p><strong>Total Paid:</strong> ₹<%= Number(totalAmount).toFixed(2) %></p>
-    <p><strong>Payment Method:</strong> <%= paymentMethod %></p>
+    <p><strong>Payment Method:</strong> 
+      <% if (paymentMethod === 'RAZORPAY') { %>
+        <span style="background: linear-gradient(90deg,#1b66c9,#0f4fa6); color:#fff; padding:2px 10px; border-radius:6px; font-size:0.85rem;">💳 Razorpay</span>
+      <% } else { %>
+        <%= paymentMethod %>
+      <% } %>
+    </p>
 
     <% if (rewardPointsEarned && rewardPointsEarned > 0) { %>
       <div class="reward-box mt-3">
